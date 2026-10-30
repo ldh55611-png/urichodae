@@ -6,7 +6,6 @@ const LOCAL_FONTS=!!process.env.LOCAL_FONTS;const OUT=process.env.OUT||'guide-re
 (async()=>{const b=await chromium.launch();const ctx=await b.newContext({viewport:{width:1280,height:760},recordVideo:{dir:''+OUT+'/vid',size:{width:1280,height:760}}});const p=await ctx.newPage();
 if(LOCAL_FONTS)await p.route(/fonts\.googleapis\.com/,r=>r.fulfill({contentType:'text/css',body:fs.readFileSync('/home/claude/fonts/all.css','utf8')}));
 if(LOCAL_FONTS)await p.route(/fonts\.gstatic\.com\/fs\//,r=>{const m=r.request().url().match(/fs\/([^/]+)\/files\/(.+)$/);try{r.fulfill({body:fs.readFileSync(FONT+m[1]+'/files/'+m[2])})}catch{r.abort()}});
-display:grid;place-items:center;height:100vh;background:#e8eee6;font:14px sans-serif;color:#667">🗺 지도</body>'}));
 const cap=async(t)=>{await p.evaluate(t=>{let c=document.getElementById('guide-cap');if(!c){c=document.createElement('div');c.id='guide-cap';c.style.cssText='position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:99;background:#3f4a3bee;color:#fff;font:600 19px "Noto Sans KR",sans-serif;padding:13px 26px;border-radius:30px;box-shadow:0 8px 25px #0003;pointer-events:none;white-space:nowrap';document.body.appendChild(c)}c.textContent=t},t);await p.waitForTimeout(2600)};
 const w=ms=>p.waitForTimeout(Math.round(ms*1.8));
 await p.goto((process.env.BASE||'http://127.0.0.1:8799')+'/');await w(800);
@@ -45,7 +44,6 @@ await ctx.close();console.log('link',link);
 const ctx2=await b.newContext({viewport:{width:390,height:760},deviceScaleFactor:1,recordVideo:{dir:''+OUT+'/vid2',size:{width:390,height:760}}});const m=await ctx2.newPage();
 if(LOCAL_FONTS)await m.route(/fonts\.googleapis\.com/,r=>r.fulfill({contentType:'text/css',body:fs.readFileSync('/home/claude/fonts/all.css','utf8')}));
 if(LOCAL_FONTS)await m.route(/fonts\.gstatic\.com\/fs\//,r=>{const x=r.request().url().match(/fs\/([^/]+)\/files\/(.+)$/);try{r.fulfill({body:fs.readFileSync(FONT+x[1]+'/files/'+x[2])})}catch{r.abort()}});
-display:grid;place-items:center;height:100vh;background:#e8eee6;font:14px sans-serif;color:#667">🗺 지도</body>'}));
 await m.goto(link);await m.waitForTimeout(1800);await m.locator('.invite-opening button').click();await m.waitForTimeout(1000);
 for(let i=0;i<16;i++){await m.mouse.wheel(0,380);await m.waitForTimeout(900)}
 await m.waitForTimeout(600);await ctx2.close();await b.close()})().catch(e=>{console.error(e);process.exit(1)});
