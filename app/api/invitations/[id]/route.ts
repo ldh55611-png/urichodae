@@ -1,0 +1,2 @@
+import { db,own,reply,failure,sameOrigin,validData } from '../../service';
+export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){try{sameOrigin(req);const {id}=await params;await own(id);if(Number(req.headers.get('content-length')||0)>200000)throw Error('내용이 너무 깁니다.');const d=await validData(id,await req.json());const updated=new Date().toISOString();await db().prepare('UPDATE invitations SET data=?,updated=? WHERE id=?').bind(JSON.stringify(d),updated,id).run();return reply({ok:true,updated})}catch(e){return failure(e)}}

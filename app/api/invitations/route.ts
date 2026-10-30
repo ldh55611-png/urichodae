@@ -1,0 +1,6 @@
+import { db,user,reply,failure,sameOrigin } from '../service';
+import { ensureOwner,currentOwner } from '../../guest-session';
+import { betaPolicy } from '../../beta-policy';
+import { defaults } from '../../model';
+export async function GET(){try{const owner=await currentOwner();if(!owner)return reply([]);const rows=await db().prepare('SELECT id,data,published,updated FROM invitations WHERE owner=? ORDER BY updated DESC').bind(owner).all<{id:string;data:string;published:number;updated:string}>();return reply(rows.results.map(r=>({...r,data:JSON.parse(r.data),published:!!r.published})))}catch(e){return failure(e)}}
+export async function POST(req:Request){try{sameOrigin(req);const owner=await ensureOwner(req);const count=await db().prepare('SELECT COUNT(*) as n FROM invitations WHERE owner=?').bind(owner).first<{n:number}>();if((count?.n||0)>=betaPolicy.maxInvitations)throw Error('무료 베타에서는 관리키 또는 계정당 초대장을 3개까지 만들 수 있습니다.');const raw=await req.json() as {kind?:string};const data=defaults(raw.kind==='baby'?'baby':'wedding'),id=crypto.randomUUID(),updated=new Date().toISOString();await db().prepare('INSERT INTO invitations(id,owner,data,published,updated) VALUES(?,?,?,0,?)').bind(id,owner,JSON.stringify(data),updated).run();return reply({id,data,published:false,updated},201)}catch(e){return failure(e)}}
