@@ -1,7 +1,7 @@
 'use client';
 import { useEffect,useRef,useState } from 'react';
 // 카카오 개발자 콘솔의 JavaScript 키(공개용, 등록한 도메인에서만 동작). 비어 있으면 구글 지도로 대신 보여줍니다.
-export const KAKAO_JS_KEY='';
+export const KAKAO_JS_KEY='7d269eee619258904c652388bfaa1aca';
 type LatLng={getLat():number;getLng():number};
 type Kakao={maps:{load(cb:()=>void):void;LatLng:new(lat:number,lng:number)=>LatLng;Map:new(el:HTMLElement,opt:{center:LatLng;level:number;draggable?:boolean;scrollwheel?:boolean;disableDoubleClickZoom?:boolean})=>{setCenter(p:LatLng):void;relayout():void};Marker:new(opt:{position:LatLng;map:unknown})=>unknown;services:{Status:{OK:string};Geocoder:new()=>{addressSearch(q:string,cb:(r:{x:string;y:string}[],s:string)=>void):void};Places:new()=>{keywordSearch(q:string,cb:(r:{x:string;y:string}[],s:string)=>void):void}}}};
 let loading:Promise<Kakao>|null=null;
