@@ -72,3 +72,10 @@
 @media(max-width:760px){.editor-top .key-btn{display:none}.editor-nav .mobile-preview{position:sticky;right:-8px;background:#fdf3ec;border-left:1px solid var(--line);border-radius:0;font-weight:500}}
 
 .share-buttons{display:grid;gap:8px;padding:30px 22px 0;max-width:340px;margin:auto}.share-buttons button{font:13px sans-serif;padding:13px;border-radius:8px;border:1px solid #e7ddcd;background:#fff;color:#574b3e}.kakao-share-owner{margin:0 auto 6px;display:flex!important;justify-content:center;background:#fee500!important;border-color:#fee500!important;color:#191919}.share-buttons .kakao-share{background:#fee500;border-color:#fee500;color:#191919;font-weight:600}
+.font-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.font-options button{border:1px solid var(--line);padding:10px 6px;border-radius:10px;display:flex;flex-direction:column;align-items:center;gap:4px;background:#fff}
+.font-options button[aria-pressed=true]{border:2px solid var(--coral);padding:9px 5px;background:#fff9f5}
+.font-options span{font-size:17px;line-height:1.4;white-space:nowrap}
+.font-options small{font-size:10px;color:#6d726a}
+.font-options button:focus-visible{outline:3px solid #354e72;outline-offset:3px}
+.invite.custom-font,.invite.custom-font :where(h1,h2,h3,h4,p,span,small,b,strong,em,time,li,div,a,button,label,input,textarea,select,blockquote,figcaption){font-family:var(--invite-font),'Noto Sans KR',sans-serif!important;font-size-adjust:var(--invite-font-adjust,none)}
