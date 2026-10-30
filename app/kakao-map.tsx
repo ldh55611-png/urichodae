@@ -1,0 +1,14 @@
+'use client';
+import { useEffect,useRef,useState } from 'react';
+// 카카오 개발자 콘솔의 JavaScript 키(공개용, 등록한 도메인에서만 동작). 비어 있으면 구글 지도로 대신 보여줍니다.
+export const KAKAO_JS_KEY='';
+type LatLng={getLat():number;getLng():number};
+type Kakao={maps:{load(cb:()=>void):void;LatLng:new(lat:number,lng:number)=>LatLng;Map:new(el:HTMLElement,opt:{center:LatLng;level:number;draggable?:boolean;scrollwheel?:boolean;disableDoubleClickZoom?:boolean})=>{setCenter(p:LatLng):void;relayout():void};Marker:new(opt:{position:LatLng;map:unknown})=>unknown;services:{Status:{OK:string};Geocoder:new()=>{addressSearch(q:string,cb:(r:{x:string;y:string}[],s:string)=>void):void};Places:new()=>{keywordSearch(q:string,cb:(r:{x:string;y:string}[],s:string)=>void):void}}}};
+let loading:Promise<Kakao>|null=null;
+function sdk(){if(loading)return loading;loading=new Promise<Kakao>((resolve,reject)=>{const w=window as unknown as {kakao?:Kakao};if(w.kakao?.maps)return w.kakao.maps.load(()=>resolve(w.kakao!));const s=document.createElement('script');s.src=`https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}&libraries=services&autoload=false`;s.onload=()=>w.kakao?w.kakao.maps.load(()=>resolve(w.kakao!)):reject(Error('kakao'));s.onerror=()=>{loading=null;reject(Error('kakao'))};document.head.appendChild(s)});return loading}
+// 주소로 먼저 찾고, 실패하면 장소 이름으로 찾습니다.
+function locate(k:Kakao,address:string,place:string){return new Promise<LatLng|null>(resolve=>{const OK=k.maps.services.Status.OK;const byPlace=()=>place?new k.maps.services.Places().keywordSearch(place,(r,s)=>resolve(s===OK&&r[0]?new k.maps.LatLng(+r[0].y,+r[0].x):null)):resolve(null);if(!address)return byPlace();new k.maps.services.Geocoder().addressSearch(address,(r,s)=>s===OK&&r[0]?resolve(new k.maps.LatLng(+r[0].y,+r[0].x)):byPlace())})}
+export default function VenueMap({address,place,fixed,fallback,link}:{address:string;place:string;fixed:boolean;fallback:string;link:string}){
+ const box=useRef<HTMLDivElement>(null),[failed,setFailed]=useState(!KAKAO_JS_KEY);
+ useEffect(()=>{if(!KAKAO_JS_KEY)return;let alive=true;const t=setTimeout(()=>{sdk().then(async k=>{const pos=await locate(k,address,place);if(!alive||!box.current)return;if(!pos){setFailed(true);return}box.current.innerHTML='';const map=new k.maps.Map(box.current,{center:pos,level:3,draggable:!fixed,scrollwheel:false,disableDoubleClickZoom:fixed});new k.maps.Marker({position:pos,map})}).catch(()=>{if(alive)setFailed(true)})},400);return()=>{alive=false;clearTimeout(t)}},[address,place,fixed]);
+ return <div className={'map-frame '+(fixed?'is-static':'')}>{failed?<iframe title={`${place||'행사 장소'} 지도`} src={fallback} loading="lazy" referrerPolicy="no-referrer-when-downgrade" tabIndex={fixed?-1:0}/>:<div ref={box} className="kakao-map" role="img" aria-label={`${place||'행사 장소'} 지도`}/>}{fixed&&<a className="map-cover" href={link} target="_blank" rel="noreferrer" aria-label="카카오맵에서 크게 보기"><span>지도를 누르면 카카오맵으로 열려요</span></a>}</div>}
