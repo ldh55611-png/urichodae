@@ -15,6 +15,20 @@
       "when": 1793263646515,
       "tag": "0001_flaky_mariko_yashida",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793338060271,
+      "tag": "0002_shiny_vin_gonzales",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1793338478293,
+      "tag": "0003_supreme_masque",
+      "breakpoints": true
     }
   ]
 }
