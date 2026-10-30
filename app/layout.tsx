@@ -6,7 +6,7 @@ const description='모바일 청첩장과 돌잔치 초대장을 직접 만들�
 const naverVerification='593efcf2e3eb0d9ef6a8aef7aef497c8ca1ab139';
 const googleVerification='';
 export const metadata:Metadata={
-  metadataBase:new URL('https://urichodae.com'),title,description,icons:{icon:'/favicon.svg'},
+  metadataBase:new URL('https://urichodae.com'),title,description,icons:{icon:[{url:'/favicon.ico',sizes:'any'},{url:'/favicon.svg',type:'image/svg+xml'}],apple:'/apple-touch-icon.png'},manifest:'/manifest.webmanifest',
   keywords:['모바일 청첩장','모바일 청첩장 만들기','셀프 청첩장','돌잔치 초대장','모바일 돌잔치 초대장','온라인 청첩장','우리의 초대'],
   robots:{index:true,follow:true},
   verification:{...(googleVerification?{google:googleVerification}:{}),...(naverVerification?{other:{'naver-site-verification':naverVerification}}:{})},
