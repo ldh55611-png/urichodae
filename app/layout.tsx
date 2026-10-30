@@ -3,7 +3,7 @@ import './globals.css';
 const title='우리의 초대 | 모바일 청첩장 만들기 · 돌잔치 초대장';
 const description='모바일 청첩장과 돌잔치 초대장을 직접 만들어 카카오톡으로 보내세요. 지도·계좌·참석 여부·방명록·배경음악까지, 회원가입 없이 바로 시작하세요.';
 // 네이버 서치어드바이저, 구글 서치 콘솔에서 받은 사이트 확인 코드(content 값)를 넣습니다.
-const naverVerification='';
+const naverVerification='593efcf2e3eb0d9ef6a8aef7aef497c8ca1ab139';
 const googleVerification='';
 export const metadata:Metadata={
   metadataBase:new URL('https://urichodae.com'),title,description,icons:{icon:'/favicon.svg'},
