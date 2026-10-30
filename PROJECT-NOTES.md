@@ -69,3 +69,8 @@ Sites의 D1(DB)에 초대장 정보를, R2(BUCKET)에 업로드 파일을 저장
 - DB 마이그레이션 추가: drizzle/0002(rsvps, guest_photos), 0003(guestbook). 배포 시 적용 필요.
 - 도메인 urichodae.com 가비아 구매 완료(연결 전).
 - 축하화환: 텔레그램 봇으로 주문 전달하는 방식 논의 중. 결제 방식(화환집 직접 vs 사이트 입금) 결정 후 구현.
+
+## 2026-10-30 제작 가이드 영상 다시 만들기
+- 녹화: `BASE=https://urichodae.ldh55611.workers.dev OUT=/tmp/guide node scripts/record-guide.cjs` (Playwright 필요, 데모 청첩장 1건이 발행됨)
+- 합치기: `ffmpeg -i <vid>/*.webm -i <vid2>/*.webm -filter_complex "[0:v]fps=30,scale=1280:760,setsar=1[a];[1:v]fps=30,scale=-2:700,pad=1280:760:(ow-iw)/2:(oh-ih)/2:color=0xeeeae1,setsar=1[b];[a][b]concat=n=2:v=1[v]" -map "[v]" -c:v libx264 -crf 30 -pix_fmt yuv420p -movflags +faststart public/guide/guide.mp4`
+- 지도까지 나오려면 dapi.kakao.com, *.daumcdn.net 접속이 되는 환경이어야 하고 app/kakao-map.tsx의 KAKAO_JS_KEY가 채워져 있어야 함.
