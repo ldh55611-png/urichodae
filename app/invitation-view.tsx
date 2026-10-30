@@ -5,6 +5,7 @@ import { compressImage } from './image-utils';
 import { CalendarSection,GalleryGrid,Contacts,Guestbook } from './invite-extras';
 import VenueMap from './kakao-map';
 import { preloadKakao,shareKakao } from './kakao-share';
+import { findFont,fontHref } from './design-options';
 const asset=(id:string)=>id.startsWith('/')?id:'/api/assets/'+id;
 function Slides({photos,hero=false}:{photos:Design['hero'];hero?:boolean}){const ref=useRef<HTMLDivElement>(null),[index,setIndex]=useState(0);if(!photos.length)return <div className="photo-empty">{hero?'사진을 넣어 소중한 날을 완성해 주세요':'갤러리에 추억을 담아 주세요'}<span>OUR SPECIAL MOMENTS</span></div>;return <div><div className={'invite-slides '+(hero?'hero-slides':'')} ref={ref} onScroll={()=>setIndex(Math.round((ref.current?.scrollLeft||0)/(ref.current?.clientWidth||1)))}>{photos.map(p=><div className="invite-slide" key={p.id}><img src={asset(p.id)} alt="초대장 사진" loading={hero?'eager':'lazy'} style={{objectPosition:`50% ${p.y}%`,transform:`scale(${p.zoom})`,transformOrigin:`50% ${p.y}%`}}/></div>)}</div>{photos.length>1&&<div className="slide-buttons"><button aria-label="이전 사진" onClick={()=>ref.current?.scrollBy({left:-(ref.current.clientWidth),behavior:'smooth'})}>←</button><span>{index+1} / {photos.length}</span><button aria-label="다음 사진" onClick={()=>ref.current?.scrollBy({left:ref.current.clientWidth,behavior:'smooth'})}>→</button></div>}</div>}
 // 하객 화면에서 두 손가락 확대·두 번 탭 확대를 막습니다. iOS는 user-scalable=no를 무시하므로 제스처 이벤트도 막습니다.
@@ -30,7 +31,9 @@ async function copy(text:string,what='계좌번호'){try{await navigator.clipboa
 const groups=(baby?[['all','마음 전할 곳']]:[['groom','신랑측 마음 전할 곳'],['bride','신부측 마음 전할 곳']]).map(([side,title])=>({side,title,list:d.accounts.filter(a=>a.number&&(side==='all'||a.side===side))})).filter(g=>g.list.length);
 const transport=d.transport.filter(t=>t.text.trim());
 const q=encodeURIComponent(d.address||d.place),mapSrc=`https://maps.google.com/maps?q=${q}&z=16&hl=ko&output=embed`,naver='https://map.naver.com/p/search/'+q;
-return <article className={`invite theme-${d.theme} style-${d.style} luxury motion`}>
+const font=findFont(d.font);
+return <article className={`invite theme-${d.theme} style-${d.style} luxury motion${font?' custom-font':''}`} style={font?{'--invite-font':`'${font.family}'`,...('adjust' in font?{'--invite-font-adjust':`cap-height ${font.adjust}`}:{})} as React.CSSProperties:undefined}>
+{font&&<link rel="stylesheet" href={fontHref([font])}/>}
 {showOpening&&<div className="invite-opening" data-pv="opening"><small>OUR INVITATION</small><h2>{d.initials||d.names||'소중한 당신께'}</h2><p>{d.title}</p><button onClick={()=>{setOpened(true);onOpened?.();if(d.music&&!preview)play()}}>초대장 열기 →</button>{preview&&<span className="opening-hint">미리보기 · 하객에게 처음 보이는 화면</span>}</div>}
 {d.music&&<div className="music-bar"><audio ref={music} src={asset(d.music)} loop preload="none" onPlay={()=>setPlaying(true)} onPause={()=>setPlaying(false)}/><button onClick={play} aria-label={playing?'배경음악 정지':'배경음악 재생'}>{playing?'Ⅱ 음악 정지':'♫ 음악 재생'}</button></div>}
 <header data-pv="top"><small>{baby?'OUR FIRST BIRTHDAY':'WE ARE GETTING MARRIED'}</small>{baby&&<div className="baby-drawing">✿</div>}<h1>{d.title}</h1><p>{d.names|| (baby?'아이 이름':'신랑 · 신부')}</p><time>{dateLabel(d.date)||'소중한 날을 기다립니다'}</time>{(d.place||d.hall)&&<p className="header-place">{[d.place,d.hall].filter(Boolean).join(' ')}</p>}</header>
