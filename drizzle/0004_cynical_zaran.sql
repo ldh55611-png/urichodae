@@ -1,0 +1,1 @@
+ALTER TABLE `invitations` ADD `created` text DEFAULT '' NOT NULL;
