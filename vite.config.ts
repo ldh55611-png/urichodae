@@ -19,6 +19,8 @@ const localBindingConfig = {
   name: "urichodae",
   main: "./worker/index.ts",
   compatibility_flags: ["nodejs_compat"],
+  // 매일 18:00 UTC = 한국 시간 새벽 3시에 만료 초대장 사진 정리(worker/index.ts의 scheduled)
+  triggers: { crons: ["0 18 * * *"] },
   d1_databases: d1
     ? [
         {
