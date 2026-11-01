@@ -11,5 +11,5 @@ export default function Refund(){return <main className="policy">
     <li>환불 신청: <a href="mailto:korealeedo@naver.com">korealeedo@naver.com</a> (주문자 이름, 결제일, 초대장 주소를 적어 주세요)</li>
     <li>환불은 신청일로부터 3영업일 이내에 결제하신 수단으로 처리됩니다.</li>
   </ol>
-  <p className="hint">운영: 마플리 · 대표 이두형 · 사업자등록번호 537-20-02420</p>
+  <p className="hint">운영: 마플리 · 대표 이두형 · 사업자등록번호 537-20-02420 · 통신판매업 신고 제2026-대전유성-0433호</p>
 </main>}
