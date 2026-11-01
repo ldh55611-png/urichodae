@@ -1,5 +1,5 @@
 import { env } from 'cloudflare:workers';
-import { db,reply,sameOrigin } from '../service';
+import { db,bucket,reply,sameOrigin } from '../service';
 // 대표 전용 관리자 화면용 통계. 비밀번호는 Cloudflare 워커 설정의 비밀 값 ADMIN_PASSWORD 로만 확인합니다.
 const digest=async(v:string)=>new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v)));
 async function same(a:string,b:string){const x=await digest(a),y=await digest(b);let diff=0;for(let i=0;i<x.length;i++)diff|=x[i]^y[i];return diff===0}
@@ -9,9 +9,15 @@ export async function POST(req:Request){
   try{sameOrigin(req)}catch{return reply({error:'허용되지 않은 요청입니다.'},403)}
   const secret=env.ADMIN_PASSWORD;
   if(!secret)return reply({error:'관리자 비밀번호가 아직 설정되지 않았습니다.',setup:true},503);
-  const raw=await req.json().catch(()=>({})) as {password?:unknown};
+  const raw=await req.json().catch(()=>({})) as {password?:unknown;action?:unknown;ids?:unknown};
   if(typeof raw.password!=='string'||raw.password.length>200||!await same(raw.password,secret)){await new Promise(r=>setTimeout(r,800));return reply({error:'비밀번호가 맞지 않습니다.'},401)}
   const d=db();
+  if(raw.action==='delete'){
+    const ids=Array.isArray(raw.ids)?raw.ids.filter((x):x is string=>typeof x==='string'&&/^[0-9a-f-]{36}$/.test(x)).slice(0,500):[];
+    if(!ids.length)return reply({error:'지울 초대장을 골라 주세요.'},400);
+    const removed=await removeInvitations(ids);
+    return reply({deleted:removed});
+  }
   const rows=await d.prepare(`SELECT i.id,i.owner,i.data,i.published,i.updated,i.created,g.created AS maker_since,
     (SELECT COUNT(*) FROM rsvps r WHERE r.invitation=i.id) AS rsvps,
     (SELECT COUNT(*) FROM guestbook b WHERE b.invitation=i.id) AS guestbook,
@@ -29,4 +35,19 @@ export async function POST(req:Request){
     totals:{invitations:list.length,published:list.filter(i=>i.published).length,todayInvitations:list.filter(i=>createdDay(i)===today).length,todayPublished:list.filter(i=>i.published&&kstDay(i.updated)===today).length,makers:makers.results.length,todayMakers:makers.results.filter(m=>kstDay(m.created)===today).length,rsvps:list.reduce((s,i)=>s+i.rsvps,0),guestbook:list.reduce((s,i)=>s+i.guestbook,0)},
     storage:{fileBytes:files?.bytes||0,fileLimit:10*1024**3,dbBytes:(rows.meta as {size_after?:number})?.size_after||0,dbLimit:5*1024**3},
     list});
+}
+
+// 초대장과 딸린 기록(사진·음악·영상 파일, 참석 응답, 방명록, 하객 사진, 결제 기록)을 모두 지웁니다. 되돌릴 수 없습니다.
+async function removeInvitations(ids:string[]){
+  const d=db();let count=0;
+  for(const id of ids){
+    const files=await d.prepare('SELECT id FROM assets WHERE invitation=? UNION ALL SELECT id FROM guest_photos WHERE invitation=?').bind(id,id).all<{id:string}>();
+    const keys=files.results.map(f=>f.id);
+    for(let i=0;i<keys.length;i+=1000)await bucket().delete(keys.slice(i,i+1000));
+    const res=await d.batch(['assets','guest_photos','rsvps','guestbook','payments'].map(t=>d.prepare(`DELETE FROM ${t} WHERE invitation=?`).bind(id)).concat(d.prepare('DELETE FROM invitations WHERE id=?').bind(id)));
+    count+=res[res.length-1].meta.changes||0;
+  }
+  // 초대장이 하나도 남지 않은 제작자 기록도 정리합니다(전체 제작자 숫자에서 빠지도록).
+  await d.prepare('DELETE FROM guest_sessions WHERE owner NOT IN (SELECT owner FROM invitations)').run();
+  return count;
 }
