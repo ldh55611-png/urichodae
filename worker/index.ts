@@ -1,6 +1,7 @@
 import handler from "vinext/server/fetch-handler";
 import { runWithConnectorBinding } from "../lib/connector-context";
 import type { ConnectorBinding } from "../lib/connector-contract.mjs";
+import { cleanupExpired } from "../lib/retention-cleanup";
 
 const worker = {
   fetch(request: Request, env: Cloudflare.Env, ctx: ExecutionContext<{ CONNECTORS?: ConnectorBinding }>) {
@@ -24,6 +25,10 @@ const worker = {
       };
     }
     return runWithConnectorBinding(binding, () => handler.fetch(request, env, ctx));
+  },
+  // 매일 새벽 3시(한국 시간): 열람 기간이 끝나고 7일 지난 초대장의 사진을 지웁니다. (vite.config.ts의 crons)
+  scheduled(_controller: ScheduledController, env: Cloudflare.Env, ctx: ExecutionContext) {
+    ctx.waitUntil(cleanupExpired(env).then(() => undefined, (e) => console.error("[정리 실패]", e)));
   },
 };
 

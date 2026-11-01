@@ -43,6 +43,13 @@
       "when": 1793537607709,
       "tag": "0005_heavy_brother_voodoo",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1793553864001,
+      "tag": "0006_lumpy_lila_cheney",
+      "breakpoints": true
     }
   ]
 }
