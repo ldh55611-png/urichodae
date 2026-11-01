@@ -1,7 +1,7 @@
 // Intentionally empty by default.
 // Add Drizzle tables here when the site actually needs a database.
 // See examples/d1/db/schema.ts for an opt-in example.
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, primaryKey } from 'drizzle-orm/sqlite-core';
 export const invitations=sqliteTable('invitations',{id:text('id').primaryKey(),owner:text('owner').notNull(),data:text('data').notNull(),entitlement:text('entitlement').notNull().default('free_beta'),published:integer('published').notNull().default(0),updated:text('updated').notNull(),created:text('created').notNull().default(''),keep:text('keep').notNull().default(''),purged:text('purged').notNull().default('')});
 export const assets=sqliteTable('assets',{id:text('id').primaryKey(),invitation:text('invitation').notNull(),kind:text('kind').notNull(),mime:text('mime').notNull(),size:integer('size').notNull()});
 
@@ -11,3 +11,4 @@ export const rsvps=sqliteTable('rsvps',{id:text('id').primaryKey(),invitation:te
 export const guestPhotos=sqliteTable('guest_photos',{id:text('id').primaryKey(),invitation:text('invitation').notNull(),uploader:text('uploader').notNull().default(''),mime:text('mime').notNull(),size:integer('size').notNull(),created:text('created').notNull()});
 export const guestbook=sqliteTable('guestbook',{id:text('id').primaryKey(),invitation:text('invitation').notNull(),name:text('name').notNull(),message:text('message').notNull(),pwHash:text('pw_hash').notNull(),created:text('created').notNull()});
 export const payments=sqliteTable('payments',{orderId:text('order_id').primaryKey(),invitation:text('invitation').notNull(),owner:text('owner').notNull(),amount:integer('amount').notNull(),mode:text('mode').notNull(),status:text('status').notNull().default('ready'),paymentKey:text('payment_key').notNull().default(''),method:text('method').notNull().default(''),created:text('created').notNull(),approved:text('approved').notNull().default(''),product:text('product').notNull().default('publish')});
+export const visits=sqliteTable('visits',{day:text('day').notNull(),kind:text('kind').notNull(),visitor:text('visitor').notNull(),views:integer('views').notNull().default(1)},t=>[primaryKey({columns:[t.day,t.kind,t.visitor]})]);
