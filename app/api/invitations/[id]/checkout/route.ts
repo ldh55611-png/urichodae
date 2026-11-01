@@ -1,0 +1,5 @@
+import { db,own,reply,failure,sameOrigin,validData } from '../../../service';
+import { payMode,hostOf,tossKeys,price,needsPayment,requireComplete } from '../../../payment';
+import { productName } from '../../../../payment-config';
+// 결제창을 열기 전에 주문번호를 만들어 둡니다. 결제 금액은 서버가 정하고, 승인할 때 다시 확인합니다.
+export async function POST(req:Request,{params}:{params:Promise<{id:string}>}){try{sameOrigin(req);const {id}=await params;const row=await own(id) as {owner:string;data:string;entitlement?:string};const mode=payMode(hostOf(req));if(!needsPayment(mode,row.entitlement||'free_beta'))throw Error('이미 결제가 끝났거나 결제가 필요 없는 초대장입니다.');requireComplete(await validData(id,JSON.parse(row.data)));const orderId='oi-'+crypto.randomUUID().replaceAll('-','').slice(0,24);await db().prepare('INSERT INTO payments(order_id,invitation,owner,amount,mode,status,created) VALUES(?,?,?,?,?,?,?)').bind(orderId,id,row.owner,price,mode,'ready',new Date().toISOString()).run();return reply({orderId,amount:price,orderName:productName,clientKey:tossKeys(mode).client,mode})}catch(e){return failure(e)}}

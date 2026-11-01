@@ -36,6 +36,13 @@
       "when": 1793536022060,
       "tag": "0004_cynical_zaran",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1793537607709,
+      "tag": "0005_heavy_brother_voodoo",
+      "breakpoints": true
     }
   ]
 }
