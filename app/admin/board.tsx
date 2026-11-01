@@ -1,7 +1,8 @@
 'use client';
 import { useCallback,useEffect,useMemo,useState } from 'react';
 type Item={id:string;maker:string;kind:'wedding'|'baby';names:string;title:string;date:string;place:string;published:boolean;created:string;updated:string;makerSince:string;rsvps:number;guestbook:number;photos:number;bytes:number};
-type Stats={today:string;totals:{invitations:number;published:number;todayInvitations:number;todayPublished:number;makers:number;todayMakers:number;rsvps:number;guestbook:number};storage:{fileBytes:number;fileLimit:number;dbBytes:number;dbLimit:number};list:Item[]};
+type Sales={todayAmount:number;todayCount:number;totalAmount:number;totalCount:number;testTodayAmount:number;testTodayCount:number};type Visit={day:string;home:number;invite:number;views:number};
+type Stats={today:string;sales?:Sales;visits?:Visit[];totals:{invitations:number;published:number;todayInvitations:number;todayPublished:number;makers:number;todayMakers:number;rsvps:number;guestbook:number};storage:{fileBytes:number;fileLimit:number;dbBytes:number;dbLimit:number};list:Item[]};
 const KEY='urichodae-admin';
 const kst=(iso:string)=>{const t=new Date(iso);if(!iso||isNaN(+t))return '';return new Date(+t+9*3600e3).toISOString()};
 const day=(iso:string)=>kst(iso).slice(0,10);
@@ -19,6 +20,11 @@ export default function AdminBoard(){
   const t=stats.totals,s=stats.storage,filePct=pct(s.fileBytes,s.fileLimit),dbPct=pct(s.dbBytes,s.dbLimit);
   return <main className="admin">
     <header className="admin-head"><div><h1>관리자</h1><p>{stats.today} 기준 (한국 시간)</p></div><div><button className="outline" onClick={()=>load(password)} disabled={busy}>{busy?'불러오는 중…':'새로고침'}</button><button className="text-btn" onClick={()=>{sessionStorage.removeItem(KEY);setStats(null);setPassword('')}}>나가기</button></div></header>
+    {(()=>{const sl=stats.sales,vs=stats.visits||[],td=vs[vs.length-1];const won=(n:number)=>n.toLocaleString('ko-KR')+'원';return <><section className="admin-cards admin-top">
+      <div><span>오늘 결제 금액</span><b>{won(sl?.todayAmount||0)}</b><small>{sl?.todayCount||0}건 · 누적 {won(sl?.totalAmount||0)}{sl?.testTodayCount?` · 연습 ${sl.testTodayCount}건`:''}</small></div>
+      <div><span>오늘 방문자</span><b>{(td?.home||0)+(td?.invite||0)}명</b><small>메인 {td?.home||0} · 청첩장 보러 온 하객 {td?.invite||0}</small></div>
+    </section>
+    {vs.length>0&&<table className="admin-visits"><thead><tr><th>날짜</th><th>메인 방문</th><th>하객 방문</th><th>열람 수</th></tr></thead><tbody>{[...vs].reverse().map(v=><tr key={v.day}><td>{+v.day.slice(5,7)}/{+v.day.slice(8,10)}</td><td>{v.home}</td><td>{v.invite}</td><td>{v.views}</td></tr>)}</tbody></table>}</>})()}
     <section className="admin-cards">
       <div><span>오늘 만든 청첩장</span><b>{t.todayInvitations}</b></div>
       <div><span>오늘 발행</span><b>{t.todayPublished}</b></div>
@@ -42,6 +48,6 @@ export default function AdminBoard(){
       {i.published&&<a href={`/i/${i.id}`} target="_blank" rel="noreferrer">청첩장 보기 ↗</a>}
     </li>)}</ul>
     {!list.length&&<p className="admin-empty">{filter==='today'?'오늘 만든 청첩장이 아직 없습니다.':'해당하는 청첩장이 없습니다.'}</p>}
-    <p className="admin-note">이 사이트는 회원가입이 없어 제작자의 이름·연락처는 저장하지 않습니다. 같은 제작자 번호는 같은 사람(같은 기기)이 만든 것입니다. 이번 업데이트 이전에 만든 청첩장은 만든 시각이 기록되어 있지 않습니다.</p>
+    <p className="admin-note">이 사이트는 회원가입이 없어 제작자의 이름·연락처는 저장하지 않습니다. 같은 제작자 번호는 같은 사람(같은 기기)이 만든 것입니다. 이번 업데이트 이전에 만든 청첩장은 만든 시각이 기록되어 있지 않습니다. 방문자는 하루 기준으로 같은 사람(같은 기기)을 1명으로 세고, 검색 로봇은 뺍니다.</p>
   </main>;
 }
