@@ -1,7 +1,7 @@
 'use client';
 import { useCallback,useEffect,useMemo,useState } from 'react';
 type Item={id:string;maker:string;kind:'wedding'|'baby';names:string;title:string;date:string;place:string;published:boolean;created:string;updated:string;makerSince:string;rsvps:number;guestbook:number;photos:number;bytes:number};
-type Sales={todayAmount:number;todayCount:number;totalAmount:number;totalCount:number;testTodayAmount:number;testTodayCount:number};type Visit={day:string;home:number;invite:number;views:number};
+type Sales={todayAmount:number;todayCount:number;totalAmount:number;totalCount:number;testTodayAmount:number;testTodayCount:number};type Visit={day:string;home:number;invite:number;views:number;start?:number;noticeStart?:number;noticeBrowse?:number;sample?:number;video?:number;made?:number};
 type Stats={today:string;sales?:Sales;visits?:Visit[];totals:{invitations:number;published:number;todayInvitations:number;todayPublished:number;makers:number;todayMakers:number;rsvps:number;guestbook:number};storage:{fileBytes:number;fileLimit:number;dbBytes:number;dbLimit:number};list:Item[]};
 const KEY='urichodae-admin';
 const kst=(iso:string)=>{const t=new Date(iso);if(!iso||isNaN(+t))return '';return new Date(+t+9*3600e3).toISOString()};
@@ -24,7 +24,8 @@ export default function AdminBoard(){
       <div><span>오늘 결제 금액</span><b>{won(sl?.todayAmount||0)}</b><small>{sl?.todayCount||0}건 · 누적 {won(sl?.totalAmount||0)}{sl?.testTodayCount?` · 연습 ${sl.testTodayCount}건`:''}</small></div>
       <div><span>오늘 방문자</span><b>{(td?.home||0)+(td?.invite||0)}명</b><small>메인 {td?.home||0} · 청첩장 보러 온 하객 {td?.invite||0}</small></div>
     </section>
-    {vs.length>0&&<table className="admin-visits"><thead><tr><th>날짜</th><th>메인 방문</th><th>하객 방문</th><th>열람 수</th></tr></thead><tbody>{[...vs].reverse().map(v=><tr key={v.day}><td>{+v.day.slice(5,7)}/{+v.day.slice(8,10)}</td><td>{v.home}</td><td>{v.invite}</td><td>{v.views}</td></tr>)}</tbody></table>}</>})()}
+    {vs.length>0&&<table className="admin-visits"><thead><tr><th>날짜</th><th>메인 방문</th><th>하객 방문</th><th>열람 수</th></tr></thead><tbody>{[...vs].reverse().map(v=><tr key={v.day}><td>{+v.day.slice(5,7)}/{+v.day.slice(8,10)}</td><td>{v.home}</td><td>{v.invite}</td><td>{v.views}</td></tr>)}</tbody></table>}
+    {vs.length>0&&<><h2 className="admin-sub">메인 화면에서 무엇을 했나 (사람 수)</h2><p className="admin-note admin-note-top">안내창: 처음 온 사람에게만 떠요. ‘바로 만들기’를 누른 사람과 ‘둘러볼게요’로 닫은 사람을 따로 셉니다. 만들기 누름은 화면 어디서든 만들기 버튼을 누른 사람이에요.</p><div className="admin-table-wrap"><table className="admin-visits"><thead><tr><th>날짜</th><th>메인 방문</th><th>안내창 바로 만들기</th><th>안내창 둘러봄</th><th>샘플 봄</th><th>영상 봄</th><th>만들기 누름</th><th>만들어진 초대장</th><th>만들기 누른 비율</th></tr></thead><tbody>{[...vs].reverse().map(v=><tr key={v.day}><td>{+v.day.slice(5,7)}/{+v.day.slice(8,10)}</td><td>{v.home}</td><td>{v.noticeStart||0}</td><td>{v.noticeBrowse||0}</td><td>{v.sample||0}</td><td>{v.video||0}</td><td>{v.start||0}</td><td>{v.made||0}</td><td>{v.home?Math.round(Math.min(v.start||0,v.home)/v.home*100)+'%':'-'}</td></tr>)}</tbody></table></div></>}</>})()}
     <section className="admin-cards">
       <div><span>오늘 만든 청첩장</span><b>{t.todayInvitations}</b></div>
       <div><span>오늘 발행</span><b>{t.todayPublished}</b></div>
