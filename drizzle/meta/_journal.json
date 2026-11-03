@@ -57,6 +57,13 @@
       "when": 1793557131556,
       "tag": "0007_rare_ezekiel",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1793713665834,
+      "tag": "0008_colossal_silverclaw",
+      "breakpoints": true
     }
   ]
 }
