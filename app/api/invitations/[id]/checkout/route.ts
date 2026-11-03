@@ -1,5 +1,5 @@
 import { db,own,reply,failure,sameOrigin,validData } from '../../../service';
-import { payMode,hostOf,tossKeys,price,needsPayment,requireComplete } from '../../../payment';
+import { payMode,hostOf,tossKeys,price,needsPayment } from '../../../payment';
 import { productName,keepPrice,keepProductName,keepOpen } from '../../../../payment-config';
 import { normalize } from '../../../../model';
 import { retention } from '../../../../retention';
@@ -17,7 +17,7 @@ export async function POST(req:Request,{params}:{params:Promise<{id:string}>}){t
     amount=keepPrice;orderName=keepProductName;
   }else{
     if(!needsPayment(mode,row.entitlement||'free_beta'))throw Error('이미 결제가 끝났거나 결제가 필요 없는 초대장입니다.');
-    requireComplete(await validData(id,JSON.parse(row.data)));
+    await validData(id,JSON.parse(row.data));
     // 토스페이먼츠 기준(서비스 제공기간 최대 12개월): 예식일이 결제일로부터 11개월(335일) 안이어야 발행 결제를 받습니다.
     {const when=Date.parse(normalize(JSON.parse(row.data)).date);if(Number.isFinite(when)&&when-Date.now()>335*86400e3)throw Error('예식일(행사일)이 오늘부터 11개월 이내일 때 발행할 수 있어요.')}
     if(product==='publish_keep'){amount=price+keepPrice;orderName=productName+' + 영구보관'}
