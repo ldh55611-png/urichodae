@@ -6,10 +6,11 @@ export const proposedPrice = 14900;
 //  'test' : 결제창은 뜨지만 연습 결제 (돈이 나가지 않음)
 //  'live' : 실제 결제. 토스페이먼츠 심사 통과 후 Cloudflare에 TOSS_CLIENT_KEY, TOSS_SECRET_KEY(비밀)를 넣고 바꿉니다.
 // 미리보기 주소(실제 사이트가 아닌 주소)에서는 항상 'test'로 동작해서, 실제 손님에게 영향 없이 결제 흐름을 시험할 수 있습니다.
-// 2026-11-03 토스페이먼츠 심사 기간 동안 'test'(연습 결제창)로 켜 둡니다. 대표 승인.
+// 2026-11-03 토스페이먼츠 심사용으로 'test'로 켰다가, 2026-11-05 대표 결정으로 다시 'off'(무료). 메타광고에 '무료'로 안내 중.
+// 토스 심사 신청할 때 'test'로 다시 바꿉니다.
 // ⚠ 'live'로 바꿀 때: 심사 기간에 만든 초대장(entitlement 'unpaid'/'test_paid')은 무료로 유지해야 합니다.
 //    D1에서 실행: UPDATE invitations SET entitlement='free_beta' WHERE entitlement IN ('unpaid','test_paid') AND created < '<live 전환 시각>';
-export const siteMode: 'off'|'test'|'live' = 'test';
+export const siteMode: 'off'|'test'|'live' = 'off';
 export const productName = '우리의 초대 모바일 초대장 발행';
 // 영구보관(기간 없이 계속 열람) 연장 가격. 바꾸려면 이 숫자만 고치면 됩니다.
 export const keepPrice = 9900;
