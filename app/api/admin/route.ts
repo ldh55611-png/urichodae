@@ -4,7 +4,7 @@ import { db,bucket,reply,sameOrigin } from '../service';
 const digest=async(v:string)=>new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v)));
 async function same(a:string,b:string){const x=await digest(a),y=await digest(b);let diff=0;for(let i=0;i<x.length;i++)diff|=x[i]^y[i];return diff===0}
 const kstDay=(iso:string)=>{const t=new Date(iso);return isNaN(+t)?'':new Date(+t+9*3600e3).toISOString().slice(0,10)};
-type Row={id:string;owner:string;data:string;published:number;updated:string;created:string;maker_since:string|null;rsvps:number;guestbook:number;photos:number;bytes:number};
+type Row={id:string;owner:string;data:string;published:number;published_at:string;updated:string;created:string;maker_since:string|null;rsvps:number;guestbook:number;photos:number;bytes:number};
 export async function POST(req:Request){
   try{sameOrigin(req)}catch{return reply({error:'허용되지 않은 요청입니다.'},403)}
   const secret=env.ADMIN_PASSWORD;
@@ -18,7 +18,7 @@ export async function POST(req:Request){
     const removed=await removeInvitations(ids);
     return reply({deleted:removed});
   }
-  const rows=await d.prepare(`SELECT i.id,i.owner,i.data,i.published,i.updated,i.created,g.created AS maker_since,
+  const rows=await d.prepare(`SELECT i.id,i.owner,i.data,i.published,i.published_at,i.updated,i.created,g.created AS maker_since,
     (SELECT COUNT(*) FROM rsvps r WHERE r.invitation=i.id) AS rsvps,
     (SELECT COUNT(*) FROM guestbook b WHERE b.invitation=i.id) AS guestbook,
     (SELECT COUNT(*) FROM guest_photos p WHERE p.invitation=i.id) AS photos,
@@ -39,13 +39,14 @@ export async function POST(req:Request){
   const days=Array.from({length:7},(_,i)=>kstDay(new Date(Date.now()-(6-i)*86400e3).toISOString()));
   const list=rows.results.map(r=>{let x:{kind?:string;names?:string;title?:string;date?:string;place?:string;hall?:string}={};try{x=JSON.parse(r.data)}catch{}
     const created=r.created||'';
-    return {id:r.id,maker:r.owner.replace(/^guest:/,'').slice(0,6),kind:x.kind==='baby'?'baby':'wedding',names:x.names||'',title:x.title||'',date:x.date||'',place:[x.place,x.hall].filter(Boolean).join(' '),published:!!r.published,created,updated:r.updated,makerSince:r.maker_since||'',rsvps:r.rsvps,guestbook:r.guestbook,photos:r.photos,bytes:r.bytes}});
+    return {id:r.id,maker:r.owner.replace(/^guest:/,'').slice(0,6),kind:x.kind==='baby'?'baby':'wedding',names:x.names||'',title:x.title||'',date:x.date||'',place:[x.place,x.hall].filter(Boolean).join(' '),published:!!r.published,publishedAt:r.published_at||'',created,updated:r.updated,makerSince:r.maker_since||'',rsvps:r.rsvps,guestbook:r.guestbook,photos:r.photos,bytes:r.bytes}});
   const createdDay=(i:typeof list[number])=>kstDay(i.created);
   // 메인 화면 행동(사람 수): 만들기 누름, 안내창에서 바로 만들기, 안내창 닫고 둘러봄, 샘플 봄, 영상 봄 + 실제로 만들어진 초대장 수
   const people=(day:string,kind:string)=>vrows.results.find(r=>r.day===day&&r.kind===kind)?.people||0;
   const visits=days.map(day=>{const h=vrows.results.find(r=>r.day===day&&r.kind==='home'),v=vrows.results.find(r=>r.day===day&&r.kind==='invite');return {day,home:h?.people||0,invite:v?.people||0,views:(h?.views||0)+(v?.views||0),start:people(day,'start'),noticeStart:people(day,'notice_start'),noticeBrowse:people(day,'notice_browse'),sample:people(day,'sample'),video:people(day,'video'),made:list.filter(i=>createdDay(i)===day).length}});
   return reply({today,sales,visits,
-    totals:{invitations:list.length,published:list.filter(i=>i.published).length,todayInvitations:list.filter(i=>createdDay(i)===today).length,todayPublished:list.filter(i=>i.published&&kstDay(i.updated)===today).length,makers:makers.results.length,todayMakers:makers.results.filter(m=>kstDay(m.created)===today).length,rsvps:list.reduce((s,i)=>s+i.rsvps,0),guestbook:list.reduce((s,i)=>s+i.guestbook,0)},
+    totals:{invitations:list.length,published:list.filter(i=>i.published).length,todayInvitations:list.filter(i=>createdDay(i)===today).length,// 오늘 발행: 처음 발행한 날이 오늘인 초대장(이미 발행된 초대장을 오늘 고친 것은 세지 않음)
+    todayPublished:list.filter(i=>i.published&&kstDay(i.publishedAt)===today).length,makers:makers.results.length,todayMakers:makers.results.filter(m=>kstDay(m.created)===today).length,rsvps:list.reduce((s,i)=>s+i.rsvps,0),guestbook:list.reduce((s,i)=>s+i.guestbook,0)},
     storage:{fileBytes:files?.bytes||0,fileLimit:10*1024**3,dbBytes:(rows.meta as {size_after?:number})?.size_after||0,dbLimit:5*1024**3},
     list});
 }

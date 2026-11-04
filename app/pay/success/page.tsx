@@ -28,9 +28,9 @@ async function confirm(paymentKey:string,orderId:string,amount:number):Promise<{
   await DB.batch([
     DB.prepare("UPDATE payments SET status='done',payment_key=?,method=?,approved=? WHERE order_id=?").bind(paymentKey,json.method||'',json.approvedAt||now,orderId),
     // 영구보관 결제는 보관 상태만 바꾸고, 발행 결제는 결제 완료 표시와 함께 발행합니다.
-    keep?DB.prepare('UPDATE invitations SET keep=?,published=1,updated=? WHERE id=?').bind(test?'test_forever':'forever',now,pay.invitation)
-        :both?DB.prepare('UPDATE invitations SET entitlement=?,keep=?,published=?,updated=? WHERE id=?').bind(test?'test_paid':'paid',test?'test_forever':'forever',pub,now,pay.invitation)
-        :DB.prepare('UPDATE invitations SET entitlement=?,published=?,updated=? WHERE id=?').bind(test?'test_paid':'paid',pub,now,pay.invitation)]);
+    keep?DB.prepare("UPDATE invitations SET keep=?,published=1,updated=?,published_at=CASE WHEN published_at='' THEN ? ELSE published_at END WHERE id=?").bind(test?'test_forever':'forever',now,now,pay.invitation)
+        :both?DB.prepare("UPDATE invitations SET entitlement=?,keep=?,published=?,updated=?,published_at=CASE WHEN ?=1 AND published_at='' THEN ? ELSE published_at END WHERE id=?").bind(test?'test_paid':'paid',test?'test_forever':'forever',pub,now,pub,now,pay.invitation)
+        :DB.prepare("UPDATE invitations SET entitlement=?,published=?,updated=?,published_at=CASE WHEN ?=1 AND published_at='' THEN ? ELSE published_at END WHERE id=?").bind(test?'test_paid':'paid',pub,now,pub,now,pay.invitation)]);
   return {ok:true,id:pay.invitation,test,keep,both,draft};
 }
 export default async function PaySuccess({searchParams}:{searchParams:Promise<Record<string,string|undefined>>}){
