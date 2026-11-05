@@ -39,7 +39,7 @@ function onEditorFocus(e:React.FocusEvent){const el=e.target as HTMLElement;cons
 function go(id:string){setActive(id);document.getElementById('sec-'+id)?.scrollIntoView({behavior:'smooth',block:'start'})}
 function update<K extends keyof Design>(key:K,value:Design[K]){setD(old=>({...old,[key]:value}));setDirty(true)}
 async function run(fn:()=>Promise<void>){if(busy)return;setBusy(true);setStatus('');try{await fn()}catch(e){setStatus(e instanceof Error?e.message:'다시 시도해 주세요.')}finally{setBusy(false)}}
-async function create(kind:'wedding'|'baby'){if(mode==='home')track('start');await run(async()=>{const item=await api('/api/invitations','POST',{kind});trackPixel('Lead',{content_category:kind});open(item)})}
+async function create(kind:'wedding'|'baby'){if(mode==='home')track('start');await run(async()=>{const item=await api('/api/invitations','POST',{kind}).catch(e=>{track('make_fail');throw e});trackPixel('Lead',{content_category:kind});open(item)})}
 async function list(){if(dirty&&!confirm('저장하지 않은 변경사항을 나가시겠어요?'))return;await run(async()=>{setItems(await api('/api/invitations'));setMode('list');setDirty(false)})}
 async function save(){if(!current)return;await api('/api/invitations/'+current.id,'PATCH',snapshot.current);setDirty(false);setStatus('저장했습니다. 다른 기기에서도 이어서 만들 수 있어요.')}
 // 발행에 꼭 필요한 5가지(서버 requireComplete와 같은 기준)
