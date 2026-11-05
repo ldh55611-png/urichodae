@@ -43,7 +43,7 @@ export async function POST(req:Request){
   const createdDay=(i:typeof list[number])=>kstDay(i.created);
   // 메인 화면 행동(사람 수): 만들기 누름, 안내창에서 바로 만들기, 안내창 닫고 둘러봄, 샘플 봄, 영상 봄 + 실제로 만들어진 초대장 수
   const people=(day:string,kind:string)=>vrows.results.find(r=>r.day===day&&r.kind===kind)?.people||0;
-  const visits=days.map(day=>{const h=vrows.results.find(r=>r.day===day&&r.kind==='home'),v=vrows.results.find(r=>r.day===day&&r.kind==='invite');return {day,home:h?.people||0,invite:v?.people||0,views:(h?.views||0)+(v?.views||0),start:people(day,'start'),noticeStart:people(day,'notice_start'),noticeBrowse:people(day,'notice_browse'),sample:people(day,'sample'),video:people(day,'video'),made:list.filter(i=>createdDay(i)===day).length}});
+  const visits=days.map(day=>{const h=vrows.results.find(r=>r.day===day&&r.kind==='home'),v=vrows.results.find(r=>r.day===day&&r.kind==='invite');return {day,home:h?.people||0,invite:v?.people||0,views:(h?.views||0)+(v?.views||0),start:people(day,'start'),noticeStart:people(day,'notice_start'),noticeBrowse:people(day,'notice_browse'),sample:people(day,'sample'),video:people(day,'video'),made:Math.max(people(day,'made'),list.filter(i=>createdDay(i)===day).length),makeFail:people(day,'make_fail')}});
   // 만든 초대장이 어디까지 채워졌나(저장된 내용으로 계산): 최근 7일에 만든 것 / 전체
   const stepOf=(xs:typeof list)=>{const all=(i:typeof list[number])=>i.steps.names&&i.steps.date&&i.steps.place&&i.steps.hero;return {made:xs.length,names:xs.filter(i=>i.steps.names).length,date:xs.filter(i=>i.steps.date).length,place:xs.filter(i=>i.steps.place).length,hero:xs.filter(i=>i.steps.hero).length,complete:xs.filter(all).length,published:xs.filter(i=>i.published).length}};
   const recent=list.filter(i=>createdDay(i)>=since);
