@@ -19,7 +19,7 @@ export async function POST(req:Request){
     return reply({deleted:removed});
   }
   const rows=await d.prepare(`SELECT i.id,i.owner,i.data,i.published,i.published_at,i.updated,i.created,g.created AS maker_since,
-    (SELECT COUNT(*) FROM rsvps r WHERE r.invitation=i.id) AS rsvps,
+    (SELECT COUNT(*) FROM rsvps r WHERE r.invitation=i.id AND r.side NOT IN ('bless','party')) AS rsvps,
     (SELECT COUNT(*) FROM guestbook b WHERE b.invitation=i.id) AS guestbook,
     (SELECT COUNT(*) FROM guest_photos p WHERE p.invitation=i.id) AS photos,
     (SELECT COALESCE(SUM(size),0) FROM assets a WHERE a.invitation=i.id)+(SELECT COALESCE(SUM(size),0) FROM guest_photos p WHERE p.invitation=i.id) AS bytes
@@ -37,9 +37,9 @@ export async function POST(req:Request){
   const since=kstDay(new Date(Date.now()-6*86400e3).toISOString());
   const vrows=await d.prepare('SELECT day,kind,COUNT(*) AS people,SUM(views) AS views FROM visits WHERE day>=? GROUP BY day,kind').bind(since).all<{day:string;kind:string;people:number;views:number}>();
   const days=Array.from({length:7},(_,i)=>kstDay(new Date(Date.now()-(6-i)*86400e3).toISOString()));
-  const list=rows.results.map(r=>{let x:{kind?:string;names?:string;title?:string;date?:string;place?:string;hall?:string;address?:string;hero?:unknown[]}={};try{x=JSON.parse(r.data)}catch{}
+  const list=rows.results.map(r=>{let x:{kind?:string;couple?:{since?:string};names?:string;title?:string;date?:string;place?:string;hall?:string;address?:string;hero?:unknown[]}={};try{x=JSON.parse(r.data)}catch{}
     const created=r.created||'';
-    return {id:r.id,maker:r.owner.replace(/^guest:/,'').slice(0,6),kind:x.kind==='baby'?'baby':'wedding',names:x.names||'',title:x.title||'',date:x.date||'',place:[x.place,x.hall].filter(Boolean).join(' '),published:!!r.published,steps:{names:!!x.names?.trim(),date:!!x.date&&Number.isFinite(Date.parse(x.date)),place:!!x.place?.trim()&&!!x.address?.trim(),hero:Array.isArray(x.hero)&&x.hero.length>0},publishedAt:r.published_at||'',created,updated:r.updated,makerSince:r.maker_since||'',rsvps:r.rsvps,guestbook:r.guestbook,photos:r.photos,bytes:r.bytes}});
+    return {id:r.id,maker:r.owner.replace(/^guest:/,'').slice(0,6),kind:x.kind==='baby'||x.kind==='couple'||x.kind==='party'?x.kind:'wedding',names:x.names||'',title:x.title||'',date:x.date||'',place:[x.place,x.hall].filter(Boolean).join(' '),published:!!r.published,steps:{names:!!x.names?.trim(),date:x.kind==='couple'?!!x.couple?.since:!!x.date&&Number.isFinite(Date.parse(x.date)),place:x.kind==='couple'||(x.kind==='party'?!!x.place?.trim():!!x.place?.trim()&&!!x.address?.trim()),hero:Array.isArray(x.hero)&&x.hero.length>0},publishedAt:r.published_at||'',created,updated:r.updated,makerSince:r.maker_since||'',rsvps:r.rsvps,guestbook:r.guestbook,photos:r.photos,bytes:r.bytes}});
   const createdDay=(i:typeof list[number])=>kstDay(i.created);
   // 메인 화면 행동(사람 수): 만들기 누름, 안내창에서 바로 만들기, 안내창 닫고 둘러봄, 샘플 봄, 영상 봄 + 실제로 만들어진 초대장 수
   const people=(day:string,kind:string)=>vrows.results.find(r=>r.day===day&&r.kind===kind)?.people||0;

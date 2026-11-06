@@ -3,14 +3,14 @@
 // - 영구보관한 초대장은 초대장 파일을 지우지 않습니다(하객이 올린 사진만 지움).
 // - 글(초대장 내용·방명록·참석 여부)은 용량이 아주 작아 남겨 둡니다. 그래서 주소로 들어오면 "기간이 끝난 초대장" 안내가 보입니다.
 import { normalize } from '../app/model';
-import { retention } from '../app/retention';
+import { retention,viewDate } from '../app/retention';
 type Row={id:string;data:string;keep:string;purged:string};
 export async function cleanupExpired(env:{DB?:D1Database;BUCKET?:R2Bucket},now=Date.now()){
   const DB=env.DB,BUCKET=env.BUCKET;if(!DB||!BUCKET)return {invitations:0,files:0,bytes:0};
   const rows=await DB.prepare("SELECT id,data,keep,purged FROM invitations").all<Row>();
   let invitations=0,files=0,bytes=0;
   for(const row of rows.results){
-    let date='';try{date=normalize(JSON.parse(row.data)).date}catch{continue}
+    let date='';try{date=viewDate(normalize(JSON.parse(row.data)))}catch{continue}
     const r=retention(date,row.keep,row.purged,now);
     if(r.purgeAt===null||now<r.purgeAt)continue;
     // 하객이 올린 사진: 영구보관 여부와 관계없이 지웁니다.

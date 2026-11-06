@@ -5,6 +5,8 @@
 // - 영구보관(유료)을 한 초대장은 기간 없이 계속 열립니다. 하객이 올린 사진은 영구보관과 별개로 같은 날 지워집니다.
 // - 이 규칙을 처음 적용하는 날(POLICY_START) 전에 예식이 끝난 초대장도 그날부터 30일을 보장합니다.
 import { siteMode } from './payment-config';
+// - 커플청첩장은 예식일이 없으므로 처음 발행한 날(couple.made)부터 30일 동안 열립니다.
+export const viewDate=(d:{kind:string;date:string;couple?:{made?:string}})=>d.kind==='couple'?(d.couple?.made||''):d.date;
 export const VIEW_DAYS=30,PHOTO_GRACE_DAYS=7;
 export const POLICY_START='2026-11-02';
 const DAY=86400e3,KST=9*3600e3;

@@ -1,0 +1,8 @@
+import { z } from 'zod';
+import { db,reply,failure,sameOrigin,publishedDesign } from '../../../service';
+// 파티 초대장 '갈게요 / 못 가요'. 참석 응답 표(rsvps)에 side='party'로 남기고, 오는 사람 이름은 초대장에 공개로 보여 줍니다.
+const body=z.object({name:z.string().trim().min(1).max(20),attending:z.boolean()});
+async function summary(id:string){const rows=await db().prepare("SELECT name,attending FROM rsvps WHERE invitation=? AND side='party' ORDER BY created DESC LIMIT 1000").bind(id).all<{name:string;attending:number}>();const yes=rows.results.filter(r=>r.attending);return {yes:yes.length,no:rows.results.length-yes.length,names:yes.slice(0,60).map(r=>r.name).reverse()}}
+async function party(id:string){const d=await publishedDesign(id);if(d.kind!=='party')throw Error('파티 초대장이 아닙니다.');return d}
+export async function GET(_req:Request,{params}:{params:Promise<{id:string}>}){try{const {id}=await params;await party(id);return reply(await summary(id))}catch(e){return failure(e)}}
+export async function POST(req:Request,{params}:{params:Promise<{id:string}>}){try{sameOrigin(req);const {id}=await params;await party(id);if(Number(req.headers.get('content-length')||0)>2000)throw Error('내용이 너무 깁니다.');const r=body.parse(await req.json());const n=await db().prepare("SELECT COUNT(*) n FROM rsvps WHERE invitation=? AND side='party'").bind(id).first<{n:number}>();if((n?.n||0)>=1000)throw Error('응답이 너무 많아 더 받을 수 없습니다.');await db().prepare("INSERT INTO rsvps(id,invitation,name,side,attending,count,created) VALUES(?,?,?,'party',?,1,?)").bind(crypto.randomUUID(),id,r.name,r.attending?1:0,new Date().toISOString()).run();return reply(await summary(id),201)}catch(e){return failure(e instanceof z.ZodError?Error('이름을 적어 주세요.'):e)}}
