@@ -6,7 +6,7 @@ import { shareResumeKakao } from './kakao-share';
 export const RESUME_PARAM='resume';
 export function resumeUrl(key:string){return `${location.origin}/?${RESUME_PARAM}=${encodeURIComponent(key)}`}
 export async function sendResumeLink(key:string,d:Design):Promise<'kakao'|'shared'|'copied'>{
-  const url=resumeUrl(key);const what=d.kind==='baby'?'돌잔치 초대장':'청첩장';
+  const url=resumeUrl(key);const what=d.kind==='baby'?'돌잔치 초대장':d.kind==='couple'?'커플청첩장':'청첩장';
   const text=`[우리의 초대] 만들던 ${what}을 이어서 만들 수 있는 링크예요.\n이 링크는 다른 사람에게 보내지 마세요. 누구나 수정할 수 있게 돼요.`;
   try{await shareResumeKakao(url,text);return 'kakao'}catch{}
   try{if(navigator.share){await navigator.share({title:'우리의 초대 · 이어서 만들기',text,url});return 'shared'}}catch(e){if(e instanceof DOMException&&e.name==='AbortError')return 'shared'}
