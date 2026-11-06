@@ -1,7 +1,7 @@
 import { env } from 'cloudflare:workers';
 import { currentOwner } from '../guest-session';
 import { publicFilter } from './payment';
-import { retention,viewDate } from '../retention';
+import { retentionOf } from '../retention';
 import { schema,tierLimit,usedAssets,isPresetMusic,normalize } from '../model';
 export const db=()=>{if(!env.DB)throw Error('저장소 연결을 확인해 주세요.');return env.DB};
 export const bucket=()=>{if(!env.BUCKET)throw Error('파일 저장소를 연결해 주세요.');return env.BUCKET};
@@ -12,5 +12,5 @@ export async function own(id:string){const owner=await user();const row=await db
 export async function validData(id:string,raw:unknown){const d=schema.parse(raw),limit=tierLimit;if(d.hero.length>limit.main||d.gallery.length>limit.gallery)throw Error('사진 수를 확인해 주세요.');if(d.music.startsWith('/')&&!isPresetMusic(d.music))throw Error('기본 음악을 다시 선택해 주세요.');for(const key of new Set(usedAssets(d))){const a=await db().prepare('SELECT kind FROM assets WHERE id=? AND invitation=?').bind(key,id).first<{kind:string}>();if(!a)throw Error('초대장에 속하지 않은 파일입니다.');if(a.kind!==(d.music===key?'music':d.video===key?'video':'image'))throw Error('파일 종류가 맞지 않습니다.')}return d}
 export function failure(e:unknown){const message=e instanceof Error?e.message:'처리하지 못했습니다.';return reply({error:message.length>300?'입력 내용을 확인해 주세요.':message},message.includes('관리키로 복구')?401:400)}
 // 하객용 기능(방명록·참석 여부·사진 올리기)은 열람 기간이 끝나면 막습니다.
-export async function publishedDesign(id:string){const row=await db().prepare('SELECT data,keep,purged FROM invitations WHERE id=? AND published=1'+publicFilter()).bind(id).first<{data:string;keep:string;purged:string}>();if(!row)throw Error('발행된 초대장을 찾을 수 없습니다.');const d=normalize(JSON.parse(row.data));if(retention(viewDate(d),row.keep,row.purged).expired)throw Error('열람 기간이 끝난 초대장입니다.');return d}
+export async function publishedDesign(id:string){const row=await db().prepare('SELECT data,keep,purged FROM invitations WHERE id=? AND published=1'+publicFilter()).bind(id).first<{data:string;keep:string;purged:string}>();if(!row)throw Error('발행된 초대장을 찾을 수 없습니다.');const d=normalize(JSON.parse(row.data));if(retentionOf(d,row.keep,row.purged).expired)throw Error('열람 기간이 끝난 초대장입니다.');return d}
 export async function readBody(req:Request,max:number){const reader=req.body?.getReader();if(!reader)throw Error('파일이 없습니다.');const chunks:Uint8Array[]=[];let bytes=0;while(true){const part=await reader.read();if(part.done)break;bytes+=part.value.byteLength;if(bytes>max){await reader.cancel();throw Error('파일 용량을 줄여 주세요.')}chunks.push(part.value)}const buffer=new Uint8Array(bytes);let cursor=0;for(const chunk of chunks){buffer.set(chunk,cursor);cursor+=chunk.byteLength}if(!buffer.byteLength)throw Error('파일 용량을 확인해 주세요.');return buffer}
