@@ -35,7 +35,7 @@ const groups=(baby?[['all','마음 전할 곳']]:[['groom','신랑측 마음 전
 const transport=d.transport.filter(t=>t.text.trim());
 const q=encodeURIComponent(d.address||d.place),mapSrc=`https://maps.google.com/maps?q=${q}&z=16&hl=ko&output=embed`,naver='https://map.naver.com/p/search/'+q;
 const font=findFont(d.font);
-return <article className={`invite theme-${d.theme} style-${d.style} luxury motion${font?' custom-font':''}${couple?' couple':''}`} style={font?{'--invite-font':`'${font.family}'`,...('adjust' in font?{'--invite-font-adjust':`cap-height ${font.adjust}`}:{})} as React.CSSProperties:undefined}>
+return <article className={`invite theme-${d.theme} style-${d.style} luxury motion${font?' custom-font':''}${couple?' couple fun':''}${party?' party fun':''}`} style={font?{'--invite-font':`'${font.family}'`,...('adjust' in font?{'--invite-font-adjust':`cap-height ${font.adjust}`}:{})} as React.CSSProperties:undefined}>
 {font&&<link rel="stylesheet" href={fontHref([font])}/>}
 {showOpening&&<div className="invite-opening" data-pv="opening"><small>OUR INVITATION</small><h2>{d.initials||d.names||'소중한 당신께'}</h2><p>{couple?'결혼은 아직이지만, 청첩장부터':d.title}</p><button onClick={()=>{setOpened(true);onOpened?.();if(d.music&&!preview)play()}}>초대장 열기 →</button>{preview&&<span className="opening-hint">미리보기 · 하객에게 처음 보이는 화면</span>}</div>}
 {d.music&&<div className="music-bar"><audio ref={music} src={asset(d.music)} loop preload="none" onPlay={()=>setPlaying(true)} onPause={()=>setPlaying(false)}/><button onClick={play} aria-label={playing?'배경음악 정지':'배경음악 재생'}>{playing?'Ⅱ 음악 정지':'♫ 음악 재생'}</button></div>}

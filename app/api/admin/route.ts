@@ -46,10 +46,19 @@ export async function POST(req:Request){
   const visits=days.map(day=>{const h=vrows.results.find(r=>r.day===day&&r.kind==='home'),v=vrows.results.find(r=>r.day===day&&r.kind==='invite');return {day,home:h?.people||0,invite:v?.people||0,views:(h?.views||0)+(v?.views||0),start:people(day,'start'),noticeStart:people(day,'notice_start'),noticeBrowse:people(day,'notice_browse'),sample:people(day,'sample'),video:people(day,'video'),made:Math.max(people(day,'made'),list.filter(i=>createdDay(i)===day).length),makeFail:people(day,'make_fail')}});
   // 만든 초대장이 어디까지 채워졌나(저장된 내용으로 계산): 최근 7일에 만든 것 / 전체
   const stepOf=(xs:typeof list)=>{const all=(i:typeof list[number])=>i.steps.names&&i.steps.date&&i.steps.place&&i.steps.hero;return {made:xs.length,names:xs.filter(i=>i.steps.names).length,date:xs.filter(i=>i.steps.date).length,place:xs.filter(i=>i.steps.place).length,hero:xs.filter(i=>i.steps.hero).length,complete:xs.filter(all).length,published:xs.filter(i=>i.published).length}};
-  const recent=list.filter(i=>createdDay(i)>=since);
+  // 청첩장·돌잔치(본 상품)만 단계별로 셉니다. 커플청첩장·파티 초대장은 아래 'fun'에서 따로 셉니다.
+  const main=list.filter(i=>i.kind==='wedding'||i.kind==='baby');
+  const recent=main.filter(i=>createdDay(i)>=since);
   const act=(kind:string)=>vrows.results.filter(r=>r.kind===kind).reduce((a,r)=>a+r.people,0);
-  const funnel={recent:stepOf(recent),all:stepOf(list),actions:{publishClick:act('publish_click'),publishMissing:act('publish_missing'),resumeSend:act('resume_send'),resumeBack:act('resume_back')}};
-  return reply({today,sales,visits,funnel,
+  const funnel={recent:stepOf(recent),all:stepOf(main),actions:{publishClick:act('publish_click'),publishMissing:act('publish_missing'),resumeSend:act('resume_send'),resumeBack:act('resume_back')}};
+  // 커플청첩장·파티 초대장: 날짜별(만들기 누름·만들어짐·처음 발행·승낙/갈게요 누른 사람)과 전체 합계
+  const answers=await d.prepare("SELECT side,attending,COUNT(*) AS n FROM rsvps WHERE side IN ('bless','party') GROUP BY side,attending").all<{side:string;attending:number;n:number}>();
+  const ans=(side:string,att?:number)=>answers.results.filter(a=>a.side===side&&(att===undefined||a.attending===att)).reduce((x,a)=>x+a.n,0);
+  const ofKind=(k:string)=>list.filter(i=>i.kind===k);
+  const fun={days:days.map(day=>({day,coupleStart:people(day,'couple_start'),coupleMade:ofKind('couple').filter(i=>createdDay(i)===day).length,couplePublished:ofKind('couple').filter(i=>i.published&&kstDay(i.publishedAt)===day).length,coupleYes:people(day,'couple_yes'),partyStart:people(day,'party_start'),partyMade:ofKind('party').filter(i=>createdDay(i)===day).length,partyPublished:ofKind('party').filter(i=>i.published&&kstDay(i.publishedAt)===day).length,partyGoing:people(day,'party_going')})),
+    couple:{made:ofKind('couple').length,published:ofKind('couple').filter(i=>i.published).length,yes:ans('bless')},
+    party:{made:ofKind('party').length,published:ofKind('party').filter(i=>i.published).length,going:ans('party',1),notGoing:ans('party',0)}};
+  return reply({today,sales,visits,funnel,fun,
     totals:{invitations:list.length,published:list.filter(i=>i.published).length,todayInvitations:list.filter(i=>createdDay(i)===today).length,// 오늘 발행: 처음 발행한 날이 오늘인 초대장(이미 발행된 초대장을 오늘 고친 것은 세지 않음)
     todayPublished:list.filter(i=>i.published&&kstDay(i.publishedAt)===today).length,makers:makers.results.length,todayMakers:makers.results.filter(m=>kstDay(m.created)===today).length,rsvps:list.reduce((s,i)=>s+i.rsvps,0),guestbook:list.reduce((s,i)=>s+i.guestbook,0)},
     storage:{fileBytes:files?.bytes||0,fileLimit:10*1024**3,dbBytes:(rows.meta as {size_after?:number})?.size_after||0,dbLimit:5*1024**3},
