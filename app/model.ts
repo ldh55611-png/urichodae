@@ -44,6 +44,9 @@ export type Kind=Design['kind'];
 export const kindLabel=(k:Kind)=>k==='baby'?'돌잔치':k==='couple'?'커플청첩장':k==='party'?'파티 초대장':'청첩장';
 // 결제 없이 발행하는 '놀이용' 초대장(사람 모으는 용도)
 export const isFreeKind=(k:string|undefined)=>k==='couple'||k==='party';
+// 만들기만 누르고 아무것도 안 쓴 초안(빈 초안). 관리자 화면의 '빈 초안'과 같은 기준이에요.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const isBlankDraft=(x:any,published:boolean)=>!published&&!x?.names?.trim()&&!(x?.kind==='couple'?x?.couple?.since:x?.date&&Number.isFinite(Date.parse(x.date)))&&!x?.place?.trim()&&!(Array.isArray(x?.hero)&&x.hero.length>0);
 export type PartyType=Design['party']['type'];
 export const partyTypes:{id:PartyType;label:string;emoji:string;eyebrow:string;invite:string;title:string;message:string}[]=[
  {id:'birthday',label:'생일 파티',emoji:'🎂',eyebrow:'HAPPY BIRTHDAY',invite:'생일 파티에 초대합니다',title:'생일 파티에 놀러 오세요!',message:'일 년에 딱 하루, 제일 신나는 날!\n맛있는 거 먹고 같이 놀아요.\n몸만 오셔도 충분해요.'},
