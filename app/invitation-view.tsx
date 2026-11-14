@@ -33,7 +33,8 @@ async function play(){try{if(music.current?.paused){await music.current.play()}e
 async function copy(text:string,what='계좌번호'){try{await navigator.clipboard.writeText(text);setNotice(`${what}를 복사했습니다.`)}catch{setNotice(`자동 복사가 제한됩니다. ${what}를 길게 눌러 복사해 주세요.`)}}
 const groups=(baby?[['all','마음 전할 곳']]:[['groom','신랑측 마음 전할 곳'],['bride','신부측 마음 전할 곳']]).map(([side,title])=>({side,title,list:d.accounts.filter(a=>a.number&&(side==='all'||a.side===side))})).filter(g=>g.list.length);
 const transport=d.transport.filter(t=>t.text.trim());
-const q=encodeURIComponent(d.address||d.place),mapSrc=`https://maps.google.com/maps?q=${q}&z=16&hl=ko&output=embed`,naver='https://map.naver.com/p/search/'+q;
+// 파티 초대장: 장소 이름('두형이네집' 등)은 표시용일 뿐, 지도·길찾기는 주소로만 찾습니다.
+const where=party?d.address.trim():(d.address||d.place),q=encodeURIComponent(where),mapSrc=`https://maps.google.com/maps?q=${q}&z=16&hl=ko&output=embed`,naver='https://map.naver.com/p/search/'+q;
 const font=findFont(d.font);
 return <article className={`invite theme-${d.theme} style-${d.style} luxury motion${font?' custom-font':''}${couple?' couple fun':''}${party?' party fun':''}`} style={font?{'--invite-font':`'${font.family}'`,...('adjust' in font?{'--invite-font-adjust':`cap-height ${font.adjust}`}:{})} as React.CSSProperties:undefined}>
 {font&&<link rel="stylesheet" href={fontHref([font])}/>}
@@ -50,8 +51,9 @@ return <article className={`invite theme-${d.theme} style-${d.style} luxury moti
 {d.video&&<section data-pv="video"><h2>{baby?'웃음 가득한 성장 영상':'우리의 한 장면'}</h2><video src={asset(d.video)} controls playsInline preload="metadata" onPlay={()=>music.current?.pause()}/></section>}
 <section className="location" data-pv="location"><small>LOCATION</small><h2>오시는 길</h2><p className="venue-name">{d.place||(party?'모이는 곳':'행사 장소')}{d.hall&&<span> {d.hall}</span>}</p><p className="venue-time">{dateLabel(d.date)}</p>{d.address&&<p className="venue-address">{d.address}<button className="copy-chip" onClick={()=>copy(d.address,'주소')}>주소 복사</button></p>}
 {d.map.image&&<img className="map-image" src={asset(d.map.image)} alt={`${d.place} 약도`}/>}
-{(d.address||d.place)&&d.map.mode!=='none'&&<VenueMap address={d.address} place={d.place} fixed={d.map.mode==='static'} fallback={mapSrc} link={'https://map.kakao.com/link/search/'+q}/>}
-{(d.address||d.place)&&<div className="nav-buttons"><a href={naver} target="_blank" rel="noreferrer">네이버 지도</a><a href={'https://map.kakao.com/link/search/'+q} target="_blank" rel="noreferrer">카카오맵</a><a href={'tmap://search?name='+q}>티맵</a></div>}
+{where&&d.map.mode!=='none'&&<VenueMap address={d.address.trim()} place={d.place} byName={!party} fixed={d.map.mode==='static'} fallback={mapSrc} link={'https://map.kakao.com/link/search/'+q}/>}
+{party&&!where&&preview&&<p className="map-need-address">주소를 넣으면 여기에 지도가 나와요</p>}
+{where&&<div className="nav-buttons"><a href={naver} target="_blank" rel="noreferrer">네이버 지도</a><a href={'https://map.kakao.com/link/search/'+q} target="_blank" rel="noreferrer">카카오맵</a><a href={'tmap://search?name='+q}>티맵</a></div>}
 {transport.length>0&&<dl className="transport">{transport.map((t,i)=><div key={i}><dt>{t.title||'안내'}</dt><dd>{t.text}</dd></div>)}</dl>}</section>
 {d.rsvp.enabled&&<section className="rsvp-card" data-pv="rsvp"><small>R.S.V.P.</small><h2>참석 의사 전달</h2><p>{baby?'소중한 자리에':'축하의 마음으로 참석해 주시는'} 모든 분을<br/>정성껏 모실 수 있도록 참석 여부를 알려주세요.</p>{d.rsvp.deadline&&<p className="small">회신 기한 · {d.rsvp.deadline}</p>}<button className="invite-button" onClick={()=>setRsvp(true)}>참석 의사 전달하기</button></section>}
 {party&&<PartyGoing d={d} id={id} preview={preview}/>}
