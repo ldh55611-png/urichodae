@@ -77,7 +77,6 @@ export async function POST(req:Request){
       const made=uniq(xs);const start=k==='all'?Math.max(sumPeople('start'),made):Math.max(sumPeople(startKey[k]),made);
       return [k,{visit:k==='all'?sumPeople('home'):0,start,made,drafts:xs.length,filled:uniq(filled),complete:uniq(complete),published:uniq(xs.filter(i=>i.published)),
         sources:(SOURCES as readonly string[]).map(src=>{const mine=xs.filter(i=>(i.source||'')===src);return {src,visit:sumPeople('src_'+src),made:uniq(mine),filled:uniq(mine.filter(i=>!empty(i))),published:uniq(mine.filter(i=>i.published))}}).concat([(()=>{const old=xs.filter(i=>!i.source);return {src:'unknown',visit:0,made:uniq(old),filled:uniq(old.filter(i=>!empty(i))),published:uniq(old.filter(i=>i.published))}})()]).filter(r=>r.visit||r.made),
-        publishedList:xs.filter(i=>i.published).sort((a,b)=>b.publishedAt.localeCompare(a.publishedAt)).map(i=>({id:i.id,kind:i.kind,names:i.names,title:i.title,date:i.date,publishedAt:i.publishedAt,source:i.source})),
         blank:{mistake:blanks.filter(i=>i.mistake).length,left:blanks.filter(i=>!i.mistake&&Date.parse(i.updated)-Date.parse(i.created)<=20e3).length,design:blanks.filter(i=>!i.mistake&&Date.parse(i.updated)-Date.parse(i.created)>20e3).length}}]}))]}));
   return reply({today,sales,visits,funnel,fun,conv,
     totals:{invitations:list.length,published:list.filter(i=>i.published).length,todayInvitations:list.filter(i=>createdDay(i)===today).length,// 오늘 발행: 처음 발행한 날이 오늘인 초대장(이미 발행된 초대장을 오늘 고친 것은 세지 않음)
