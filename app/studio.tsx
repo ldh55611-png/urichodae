@@ -1,5 +1,6 @@
 'use client';
 import { useEffect,useRef,useState } from 'react';
+import { rememberSource,currentSource } from './source';
 import { preloadKakao,shareKakao } from './kakao-share';
 import { ArrowRight,Heart,Plus,Upload,Check,ChevronLeft,Save,Link as LinkIcon,Image as ImageIcon,Music,Film,LayoutTemplate,Type,Settings,MapPin,Users,Sparkles } from 'lucide-react';
 import InvitationView from './invitation-view';
@@ -26,6 +27,7 @@ export default function Studio(){
 const [mode,setMode]=useState<'home'|'editor'|'list'>('home'),[items,setItems]=useState<Invitation[]>([]),[current,setCurrent]=useState<Invitation|null>(null),[d,setD]=useState<Design>(defaults()),[active,setActive]=useState('design'),[previewOpening,setPreviewOpening]=useState(false),[busy,setBusy]=useState(false),[status,setStatus]=useState(''),[dirty,setDirty]=useState(false),[demo,setDemo]=useState<Design|null>(null),[showPreview,setShowPreview]=useState(false),[link,setLink]=useState('');
 const [showKey,setShowKey]=useState(false);const [payMode,setPayMode]=useState<'off'|'test'|'live'>('off'),[paying,setPaying]=useState(false),[keeping,setKeeping]=useState(false);
 useEffect(()=>{takeResumeLink().then(async ok=>{if(!ok)return;track('resume_back');const rows=await api('/api/invitations') as Invitation[];if(rows.length===1)open(rows[0]);else{setItems(rows);setMode('list')}setStatus('만들던 초대장을 불러왔어요. 이어서 채워 주세요.')}).catch(()=>{})},[]);
+useEffect(()=>{rememberSource()},[]);
 useEffect(()=>{fetch('/api/payment').then(r=>r.json() as Promise<{mode?:'off'|'test'|'live'}>).then(j=>{if(j.mode)setPayMode(j.mode)}).catch(()=>{})},[]);
 const uploadRef=useRef<HTMLInputElement>(null);const [uploadTo,setUploadTo]=useState<'hero'|'gallery'|'music'|'video'|'map'>('hero');const formRef=useRef<HTMLDivElement>(null);const previewRef=useRef<HTMLDivElement>(null);const followKey=useRef('');const snapshot=useRef(d);snapshot.current=d;
 // 입력이 멈추고 1.5초 뒤 자동 저장합니다. 알림 대신 상단 상태 표시만 바뀝니다.
@@ -47,7 +49,7 @@ function go(id:string){setActive(id);document.getElementById('sec-'+id)?.scrollI
 function update<K extends keyof Design>(key:K,value:Design[K]){setD(old=>({...old,[key]:value}));setDirty(true)}
 async function run(fn:()=>Promise<void>){if(busy)return;setBusy(true);setStatus('');try{await fn()}catch(e){setStatus(e instanceof Error?e.message:'다시 시도해 주세요.')}finally{setBusy(false)}}
 async function removeDraft(item:Invitation){if(!confirm('이 초안을 지울까요? 되돌릴 수 없어요.'))return;await run(async()=>{await api(`/api/invitations/${item.id}`,'DELETE');setItems(old=>old.filter(i=>i.id!==item.id));setStatus('초안을 지웠어요.')})}
-async function create(kind:Kind){if(mode==='home')track('start');if(kind==='wedding')track('wedding_start');if(kind==='baby')track('baby_start');if(kind==='couple')track('couple_start');if(kind==='party')track('party_start');await run(async()=>{const item=await api('/api/invitations','POST',{kind}).catch(e=>{track('make_fail');throw e});trackPixel('Lead',{content_category:kind});open(item)})}
+async function create(kind:Kind){if(mode==='home')track('start');if(kind==='wedding')track('wedding_start');if(kind==='baby')track('baby_start');if(kind==='couple')track('couple_start');if(kind==='party')track('party_start');await run(async()=>{const item=await api('/api/invitations','POST',{kind,source:currentSource()}).catch(e=>{track('make_fail');throw e});trackPixel('Lead',{content_category:kind});open(item)})}
 useEffect(()=>{const q=new URLSearchParams(location.search);const kind=q.get('make');if((kind!=='couple'&&kind!=='party')||madeFromLink.current)return;madeFromLink.current=true;history.replaceState(null,'',location.pathname);create(kind)// eslint-disable-next-line react-hooks/exhaustive-deps
 },[]);
 async function list(){if(dirty&&!confirm('저장하지 않은 변경사항을 나가시겠어요?'))return;await run(async()=>{setItems(await api('/api/invitations'));setMode('list');setDirty(false)})}
