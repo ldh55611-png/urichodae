@@ -7,7 +7,8 @@ const paid=siteMode!=='off';
 // 처음 온 사람에게만 한 번 보여주는 짧은 환영 창. 휴대폰 첫 화면 안에 버튼까지 다 보이게 짧게 유지합니다.
 // 모양은 welcome-config.ts 한 줄로 고릅니다(showcase=4종류 고르기 / simple=글 3줄+버튼).
 // 예전 움직이는 청첩장 3장 안내창은 2026-11-16 제거(청첩장 잘못 누름이 많아서). 되살리려면 git 기록 참고.
-const KEY=welcomeStyle==='showcase'?'oi-welcome-v4':'oi-welcome-v3';
+// v5(2026-11-17): 4종류 고르기 안내창을 예전 방문자에게도 한 번 다시 보여주려고 이름을 바꿈
+const KEY=welcomeStyle==='showcase'?'oi-welcome-v5':'oi-welcome-v3';
 // 안내창에서 고르는 4종류. 커플·파티는 3칸이면 끝나서 따로 표시합니다(2026-11-16).
 const KINDS:{kind:'wedding'|'baby'|'couple'|'party';icon:string;label:string;fun?:boolean}[]=[{kind:'wedding',icon:'💍',label:'청첩장'},{kind:'baby',icon:'✿',label:'돌잔치'},{kind:'couple',icon:'♥',label:'커플청첩장',fun:true},{kind:'party',icon:'🎉',label:'생일·모임',fun:true}];
 export default function BetaNotice({onStart}:{onStart:(kind:'wedding'|'baby'|'couple'|'party')=>void}){const [open,setOpen]=useState(false);const dialog=useRef<HTMLDialogElement>(null);useEffect(()=>{if(location.search.includes('resume=')||location.search.includes('make='))return;try{if(!localStorage.getItem(KEY))setOpen(true)}catch{setOpen(true)}},[]);useEffect(()=>{if(open)dialog.current?.showModal()},[open]);function close(){try{localStorage.setItem(KEY,'1')}catch{}dialog.current?.close();setOpen(false)}function start(kind:'wedding'|'baby'|'couple'|'party'){track('notice_start');close();onStart(kind)}function browse(){track('notice_browse');close()}if(!open)return null;
