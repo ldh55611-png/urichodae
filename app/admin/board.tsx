@@ -24,9 +24,14 @@ export default function AdminBoard(){
   const scoped=useMemo(()=>{if(!stats)return [];const word=q.trim();return stats.list.filter(i=>filter==='all'||(filter==='fun'?i.kind==='couple'||i.kind==='party':filter==='published'?i.published:day(i.created)===stats.today)).filter(i=>!word||[i.names,i.title,i.place,i.maker].some(v=>v.includes(word)))},[stats,filter,q]);
   const hidden=scoped.filter(blank).length;const list=showEmpty?scoped:scoped.filter(i=>!blank(i));
   if(!stats)return <main className="admin"><form className="admin-login" onSubmit={e=>{e.preventDefault();if(password)load(password)}}><h1>관리자</h1><p>우리의 초대 대표 전용 화면입니다.</p><input type="password" autoComplete="current-password" placeholder="관리자 비밀번호" value={password} onChange={e=>setPassword(e.target.value)} autoFocus/><button className="primary" disabled={busy||!password}>{busy?'확인 중…':'들어가기'}</button>{error&&<p className="admin-error">{error}</p>}</form></main>;
-  const t=stats.totals,s=stats.storage,filePct=pct(s.fileBytes,s.fileLimit),dbPct=pct(s.dbBytes,s.dbLimit);
+  const s=stats.storage,filePct=pct(s.fileBytes,s.fileLimit),dbPct=pct(s.dbBytes,s.dbLimit);
   return <main className="admin">
     <header className="admin-head"><div><h1>관리자</h1><p>{stats.today} 기준 (한국 시간)</p></div><div><button className="outline" onClick={()=>load(password)} disabled={busy}>{busy?'불러오는 중…':'새로고침'}</button><button className="text-btn" onClick={()=>{sessionStorage.removeItem(KEY);setStats(null);setPassword('')}}>나가기</button></div></header>
+    {(()=>{const sl=stats.sales,vs=stats.visits||[],td=vs[vs.length-1];const won=(n:number)=>n.toLocaleString('ko-KR')+'원';return <><section className="admin-cards admin-top">
+      <div><span>오늘 결제 금액</span><b>{won(sl?.todayAmount||0)}</b><small>{sl?.todayCount||0}건 · 누적 {won(sl?.totalAmount||0)}{sl?.testTodayCount?` · 연습 ${sl.testTodayCount}건`:''}</small></div>
+      <div><span>오늘 방문자</span><b>{(td?.home||0)+(td?.invite||0)}명</b><small>메인 {td?.home||0} · 청첩장 보러 온 하객 {td?.invite||0}</small></div>
+    </section>
+</>})()}
     {stats.conv&&(()=>{const c=stats.conv[period][ck];const name={all:'전체',wedding:'청첩장',baby:'돌잔치',couple:'커플청첩장',party:'파티 초대장'}[ck];
       const steps:[string,number,string][]=[...(ck==='all'?[['메인 방문',c.visit,'메인 화면에 들어온 사람']] as [string,number,string][]:[]),['만들기 누름',c.start,'만들기 버튼을 누른 사람'],['초대장 생김',c.made,'실제로 초대장이 만들어진 사람'],['내용 입력',c.filled,'이름·날짜·장소·사진 중 하나라도 쓴 사람'],...(ck==='wedding'||ck==='baby'?[['필수 5칸 다 채움',c.complete,'발행할 준비가 된 사람']] as [string,number,string][]:[]),['발행 완료',c.published,'초대장을 발행한 사람']];
       const top=steps[0][1],last=steps[steps.length-1][1];const rate=(a:number,b:number)=>b?Math.round(Math.min(a,b)/b*100):0;
@@ -39,22 +44,6 @@ export default function AdminBoard(){
         {blanks>0&&<p className="conv-blank">아무것도 안 쓴 빈 초안 <b>{blanks}개</b>: 잘못 누름 <b>{b.mistake}</b>(곧바로 다른 종류를 다시 만듦) · 열고 바로 나감 <b>{b.left}</b> · 디자인만 만지고 나감 <b>{b.design}</b></p>}
         {(()=>{const srcName=(k:string)=>k==='unknown'?'경로 기록 전 (11/17 이전에 만든 것)':(SOURCE_LABEL as Record<string,string>)[k]||k;const rs=[...c.sources].sort((a,b)=>b.published-a.published||b.made-a.made||b.visit-a.visit);return <><h3 className="conv-h3">어디서 들어왔나</h3>{rs.length?<div className="admin-table-wrap"><table className="admin-visits conv-src"><thead><tr><th>들어온 곳</th>{ck==='all'&&<th>방문</th>}<th>만든 사람</th><th>내용 입력</th><th>발행</th><th>{ck==='all'?'방문→발행':'만든 사람→발행'}</th></tr></thead><tbody>{rs.map(r=>{const base=ck==='all'?r.visit:r.made;return <tr key={r.src}><td>{srcName(r.src)}</td>{ck==='all'&&<td>{r.src==='unknown'?'-':r.visit}</td>}<td>{r.made}</td><td>{r.filled}</td><td><b>{r.published}</b></td><td>{base?Math.round(Math.min(r.published,base)/base*100)+'%':'-'}</td></tr>})}</tbody></table></div>:<p className="conv-blank">아직 기록이 없어요.</p>}</>})()}
         <p className="admin-note admin-note-top">같은 사람이 여러 개 만들어도 1명으로 셉니다. 최근 7일 방문·만들기 누름은 날마다 센 사람 수를 더한 값이에요. 청첩장·돌잔치 ‘만들기 누름’과 ‘들어온 곳’은 11/17부터 셉니다. 들어온 곳은 처음 들어온 경로 기준이에요(30일 기억).</p></section>})()}
-    {(()=>{const sl=stats.sales,vs=stats.visits||[],td=vs[vs.length-1];const won=(n:number)=>n.toLocaleString('ko-KR')+'원';return <><section className="admin-cards admin-top">
-      <div><span>오늘 결제 금액</span><b>{won(sl?.todayAmount||0)}</b><small>{sl?.todayCount||0}건 · 누적 {won(sl?.totalAmount||0)}{sl?.testTodayCount?` · 연습 ${sl.testTodayCount}건`:''}</small></div>
-      <div><span>오늘 방문자</span><b>{(td?.home||0)+(td?.invite||0)}명</b><small>메인 {td?.home||0} · 청첩장 보러 온 하객 {td?.invite||0}</small></div>
-    </section>
-    {vs.length>0&&<table className="admin-visits"><thead><tr><th>날짜</th><th>메인 방문</th><th>하객 방문</th><th>열람 수</th></tr></thead><tbody>{[...vs].reverse().map(v=><tr key={v.day}><td>{+v.day.slice(5,7)}/{+v.day.slice(8,10)}</td><td>{v.home}</td><td>{v.invite}</td><td>{v.views}</td></tr>)}</tbody></table>}
-    {vs.length>0&&<><h2 className="admin-sub">메인 화면에서 무엇을 했나 (사람 수)</h2><p className="admin-note admin-note-top">안내창: 처음 온 사람에게만 떠요. ‘바로 만들기’를 누른 사람과 ‘둘러볼게요’로 닫은 사람을 따로 셉니다. 만들기 누름은 화면 어디서든 만들기 버튼을 누른 사람이에요. 만들어진 초대장은 11/6부터 지운 것도 포함해 셉니다(그 전 날짜는 지운 초대장이 빠져 있어요). 만들기 실패는 버튼을 눌렀는데 오류로 못 만든 사람이에요.</p><div className="admin-table-wrap"><table className="admin-visits"><thead><tr><th>날짜</th><th>메인 방문</th><th>안내창 바로 만들기</th><th>안내창 둘러봄</th><th>샘플 봄</th><th>영상 봄</th><th>만들기 누름</th><th>만들어진 초대장</th><th>만들기 실패</th><th>만들기 누른 비율</th></tr></thead><tbody>{[...vs].reverse().map(v=><tr key={v.day}><td>{+v.day.slice(5,7)}/{+v.day.slice(8,10)}</td><td>{v.home}</td><td>{v.noticeStart||0}</td><td>{v.noticeBrowse||0}</td><td>{v.sample||0}</td><td>{v.video||0}</td><td>{v.start||0}</td><td>{v.made||0}</td><td>{v.makeFail||0}</td><td>{v.home?Math.round(Math.min(v.start||0,v.home)/v.home*100)+'%':'-'}</td></tr>)}</tbody></table></div></>}
-    {stats.funnel&&(()=>{const f=stats.funnel,rows:[string,keyof Steps][]=[['만든 초대장','made'],['이름 입력','names'],['날짜 입력','date'],['장소·주소 입력','place'],['메인 사진 올림','hero'],['5가지 다 채움','complete'],['발행 완료','published']];const pc=(a:number,b:number)=>b?Math.round(a/b*100)+'%':'-';return <><h2 className="admin-sub">만든 뒤 어디까지 갔나 (초대장 수)</h2><p className="admin-note admin-note-top">저장된 내용으로 셉니다. 비율은 ‘만든 초대장’ 대비예요. 이름·날짜·장소·주소·메인 사진 5가지를 채워야 발행할 수 있어요.</p><div className="admin-table-wrap"><table className="admin-visits"><thead><tr><th>단계</th><th>최근 7일</th><th>비율</th><th>전체</th><th>비율</th></tr></thead><tbody>{rows.map(([l,k])=><tr key={k}><td>{l}</td><td>{f.recent[k]}</td><td>{pc(f.recent[k],f.recent.made)}</td><td>{f.all[k]}</td><td>{pc(f.all[k],f.all.made)}</td></tr>)}</tbody></table></div><p className="admin-note admin-note-top">최근 7일 편집 화면 행동(사람 수): 발행 누름 {f.actions.publishClick} · 빈 칸 때문에 발행 못 함 {f.actions.publishMissing} · 카톡 이어하기 링크 받음 {f.actions.resumeSend} · 그 링크로 돌아옴 {f.actions.resumeBack}</p></>})()}
-    {stats.fun&&(()=>{const f=stats.fun;return <><h2 className="admin-sub">커플청첩장 · 파티 초대장</h2><p className="admin-note admin-note-top">돈 안 받는 ‘사람 모으는 용’ 초대장이에요(위 단계 표에는 빠져 있어요). 누름·승낙·갈게요는 사람 수, 만들어짐·발행은 초대장 수예요. 발행은 처음 발행한 날 기준이에요.</p><section className="admin-cards admin-fun"><div><span>♥ 커플청첩장</span><b>{f.couple.made}</b><small>발행 {f.couple.published} · 결혼 승낙 {f.couple.yes}번</small></div><div><span>🎉 파티 초대장</span><b>{f.party.made}</b><small>발행 {f.party.published} · 갈게요 {f.party.going}명 · 못 가요 {f.party.notGoing}명</small></div></section><div className="admin-table-wrap"><table className="admin-visits"><thead><tr><th>날짜</th><th>커플 만들기 누름</th><th>커플 만들어짐</th><th>커플 발행</th><th>승낙 누른 사람</th><th>파티 만들기 누름</th><th>파티 만들어짐</th><th>파티 발행</th><th>갈게요 누른 사람</th></tr></thead><tbody>{[...f.days].reverse().map(v=><tr key={v.day}><td>{+v.day.slice(5,7)}/{+v.day.slice(8,10)}</td><td>{v.coupleStart}</td><td>{v.coupleMade}</td><td>{v.couplePublished}</td><td>{v.coupleYes}</td><td>{v.partyStart}</td><td>{v.partyMade}</td><td>{v.partyPublished}</td><td>{v.partyGoing}</td></tr>)}</tbody></table></div></>})()}</>})()}
-    <section className="admin-cards">
-      <div><span>오늘 만든 초대장</span><b>{t.todayInvitations}</b></div>
-      <div><span>오늘 발행</span><b>{t.todayPublished}</b></div>
-      <div><span>오늘 처음 온 제작자</span><b>{t.todayMakers}</b></div>
-      <div><span>전체 청첩장</span><b>{t.invitations}</b><small>발행 {t.published}</small></div>
-      <div><span>전체 제작자</span><b>{t.makers}</b></div>
-      <div><span>참석 응답 · 방명록</span><b>{t.rsvps} · {t.guestbook}</b></div>
-    </section>
     <section className="admin-storage">
       <div><span>사진·영상 저장 공간</span><b>{size(s.fileBytes)} / 10GB ({filePct.toFixed(1)}%)</b><i><em style={{width:`${filePct}%`}} className={filePct>=50?'warn':''}/></i></div>
       <div><span>데이터 저장 공간</span><b>{s.dbBytes?`${size(s.dbBytes)} / 5GB (${dbPct.toFixed(1)}%)`:'확인 불가'}</b><i><em style={{width:`${dbPct}%`}} className={dbPct>=50?'warn':''}/></i></div>
@@ -68,7 +57,8 @@ export default function AdminBoard(){
         <h3 className="conv-h3">오늘 발행 {today.length}개</h3>{today.length?<ul className="conv-pub">{today.map(card)}</ul>:<p className="conv-blank">오늘 발행된 초대장이 아직 없어요.</p>}
         <h3 className="conv-h3">그동안 발행 {before.length}개</h3>{before.length?<ul className="conv-pub">{before.map(card)}</ul>:<p className="conv-blank">아직 없어요.</p>}
       </section>})()}
-    <div className="admin-tools"><div role="group">{([['today','오늘'],['published','발행된 것'],['fun','커플·파티'],['all','전체']] as const).map(([k,l])=><button key={k} aria-pressed={filter===k} onClick={()=>setFilter(k)}>{l}</button>)}</div><input placeholder="이름·장소·제작자번호 검색" value={q} onChange={e=>setQ(e.target.value)}/></div>
+    <details className="admin-manage"><summary>초대장 전체 목록 · 삭제 <small>필요할 때만 열어 보세요</small></summary>
+    <div className="admin-tools"><div role="group">{([['today','오늘 만든 것'],['all','전체']] as const).map(([k,l])=><button key={k} aria-pressed={filter===k} onClick={()=>setFilter(k)}>{l}</button>)}</div><input placeholder="이름·장소·제작자번호 검색" value={q} onChange={e=>setQ(e.target.value)}/></div>
     {hidden>0&&<p className="admin-blank">아무것도 안 쓰고 나간 빈 초안 <b>{hidden}개</b>{showEmpty?'도 함께 보는 중':'는 숨겼어요'} <button type="button" onClick={()=>setShowEmpty(v=>!v)}>{showEmpty?'다시 숨기기':'보기'}</button></p>}
     <div className="admin-bulk"><p className="admin-count">{list.length}개{picked.length?` · ${picked.length}개 선택`:''}</p><div><button className="text-btn" onClick={()=>setPicked(picked.length===list.length?[]:list.map(i=>i.id))} disabled={!list.length}>{picked.length===list.length&&list.length?'선택 해제':'모두 선택'}</button><button className="admin-delete" disabled={!picked.length||busy} onClick={()=>remove(picked)}>선택한 것 삭제</button></div></div>{notice&&<p className="admin-notice">{notice}</p>}{error&&<p className="admin-error">{error}</p>}
     <ul className="admin-list">{list.map(i=><li key={i.id}>
@@ -79,6 +69,7 @@ export default function AdminBoard(){
       {i.published&&<a href={`/i/${i.id}`} target="_blank" rel="noreferrer">청첩장 보기 ↗</a>}
     </li>)}</ul>
     {!list.length&&<p className="admin-empty">{filter==='today'?'오늘 만든 청첩장이 아직 없습니다.':'해당하는 청첩장이 없습니다.'}</p>}
+    </details>
     <p className="admin-note">이 사이트는 회원가입이 없어 제작자의 이름·연락처는 저장하지 않습니다. 같은 제작자 번호는 같은 사람(같은 기기)이 만든 것입니다. 이번 업데이트 이전에 만든 청첩장은 만든 시각이 기록되어 있지 않습니다. 방문자는 하루 기준으로 같은 사람(같은 기기)을 1명으로 세고, 검색 로봇은 뺍니다.</p>
   </main>;
 }
