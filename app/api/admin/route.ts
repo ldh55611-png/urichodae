@@ -58,7 +58,25 @@ export async function POST(req:Request){
   const fun={days:days.map(day=>({day,coupleStart:people(day,'couple_start'),coupleMade:ofKind('couple').filter(i=>createdDay(i)===day).length,couplePublished:ofKind('couple').filter(i=>i.published&&kstDay(i.publishedAt)===day).length,coupleYes:people(day,'couple_yes'),partyStart:people(day,'party_start'),partyMade:ofKind('party').filter(i=>createdDay(i)===day).length,partyPublished:ofKind('party').filter(i=>i.published&&kstDay(i.publishedAt)===day).length,partyGoing:people(day,'party_going')})),
     couple:{made:ofKind('couple').length,published:ofKind('couple').filter(i=>i.published).length,yes:ans('bless')},
     party:{made:ofKind('party').length,published:ofKind('party').filter(i=>i.published).length,going:ans('party',1),notGoing:ans('party',0)}};
-  return reply({today,sales,visits,funnel,fun,
+  // 전환율 한눈에 보기: 기간(오늘·최근 7일) × 종류(전체·청첩장·돌잔치·커플·파티)별로 '사람 수' 단계를 셉니다.
+  // 같은 사람이 여러 개 만들어도 1명으로 셉니다(제작자 번호 기준). 빈 초안이 왜 생겼는지(잘못 누름·바로 나감·디자인만 만짐)도 나눠 셉니다.
+  const owners=rows.results.map(r=>r.owner);
+  type It=typeof list[number]&{owner:string;mistake:boolean};
+  const items:It[]=list.map((i,n)=>({...i,owner:owners[n],mistake:false}));
+  const empty=(i:It)=>!i.published&&!i.steps.names&&!i.steps.date&&!i.place&&!i.steps.hero;
+  // 잘못 누름: 아무것도 안 쓴 초안인데, 같은 사람이 30분 안에 다른 종류를 새로 만든 경우
+  for(const i of items){if(!empty(i)||!i.created)continue;const t=Date.parse(i.created);i.mistake=items.some(o=>o!==i&&o.owner===i.owner&&o.kind!==i.kind&&o.created&&Date.parse(o.created)>=t&&Date.parse(o.created)-t<=30*60e3)}
+  const kinds=['all','wedding','baby','couple','party'] as const;
+  const startKey:Record<string,string>={wedding:'wedding_start',baby:'baby_start',couple:'couple_start',party:'party_start'};
+  const periodDays={today:[today],week:days};
+  const uniq=(xs:It[])=>new Set(xs.map(i=>i.owner)).size;
+  const conv=Object.fromEntries((['today','week'] as const).map(p=>{const ds=periodDays[p];const inP=items.filter(i=>ds.includes(createdDay(i)));
+    const sumPeople=(kind:string)=>vrows.results.filter(r=>r.kind===kind&&ds.includes(r.day)).reduce((a,r)=>a+r.people,0);
+    return [p,Object.fromEntries(kinds.map(k=>{const xs=k==='all'?inP:inP.filter(i=>i.kind===k);const filled=xs.filter(i=>!empty(i));const complete=xs.filter(i=>i.published||(i.steps.names&&i.steps.date&&i.steps.place&&i.steps.hero));const blanks=xs.filter(empty);
+      const made=uniq(xs);const start=k==='all'?Math.max(sumPeople('start'),made):Math.max(sumPeople(startKey[k]),made);
+      return [k,{visit:k==='all'?sumPeople('home'):0,start,made,drafts:xs.length,filled:uniq(filled),complete:uniq(complete),published:uniq(xs.filter(i=>i.published)),
+        blank:{mistake:blanks.filter(i=>i.mistake).length,left:blanks.filter(i=>!i.mistake&&Date.parse(i.updated)-Date.parse(i.created)<=20e3).length,design:blanks.filter(i=>!i.mistake&&Date.parse(i.updated)-Date.parse(i.created)>20e3).length}}]}))]}));
+  return reply({today,sales,visits,funnel,fun,conv,
     totals:{invitations:list.length,published:list.filter(i=>i.published).length,todayInvitations:list.filter(i=>createdDay(i)===today).length,// 오늘 발행: 처음 발행한 날이 오늘인 초대장(이미 발행된 초대장을 오늘 고친 것은 세지 않음)
     todayPublished:list.filter(i=>i.published&&kstDay(i.publishedAt)===today).length,makers:makers.results.length,todayMakers:makers.results.filter(m=>kstDay(m.created)===today).length,rsvps:list.reduce((s,i)=>s+i.rsvps,0),guestbook:list.reduce((s,i)=>s+i.guestbook,0)},
     storage:{fileBytes:files?.bytes||0,fileLimit:10*1024**3,dbBytes:(rows.meta as {size_after?:number})?.size_after||0,dbLimit:5*1024**3},
