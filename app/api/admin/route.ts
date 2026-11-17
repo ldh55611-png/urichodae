@@ -1,10 +1,11 @@
 import { env } from 'cloudflare:workers';
 import { db,bucket,reply,sameOrigin } from '../service';
+import { SOURCES } from '../../source-names';
 // 대표 전용 관리자 화면용 통계. 비밀번호는 Cloudflare 워커 설정의 비밀 값 ADMIN_PASSWORD 로만 확인합니다.
 const digest=async(v:string)=>new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v)));
 async function same(a:string,b:string){const x=await digest(a),y=await digest(b);let diff=0;for(let i=0;i<x.length;i++)diff|=x[i]^y[i];return diff===0}
 const kstDay=(iso:string)=>{const t=new Date(iso);return isNaN(+t)?'':new Date(+t+9*3600e3).toISOString().slice(0,10)};
-type Row={id:string;owner:string;data:string;published:number;published_at:string;updated:string;created:string;maker_since:string|null;rsvps:number;guestbook:number;photos:number;bytes:number};
+type Row={id:string;owner:string;source:string;data:string;published:number;published_at:string;updated:string;created:string;maker_since:string|null;rsvps:number;guestbook:number;photos:number;bytes:number};
 export async function POST(req:Request){
   try{sameOrigin(req)}catch{return reply({error:'허용되지 않은 요청입니다.'},403)}
   const secret=env.ADMIN_PASSWORD;
@@ -18,7 +19,7 @@ export async function POST(req:Request){
     const removed=await removeInvitations(ids);
     return reply({deleted:removed});
   }
-  const rows=await d.prepare(`SELECT i.id,i.owner,i.data,i.published,i.published_at,i.updated,i.created,g.created AS maker_since,
+  const rows=await d.prepare(`SELECT i.id,i.owner,i.data,i.published,i.published_at,i.source,i.updated,i.created,g.created AS maker_since,
     (SELECT COUNT(*) FROM rsvps r WHERE r.invitation=i.id AND r.side NOT IN ('bless','party')) AS rsvps,
     (SELECT COUNT(*) FROM guestbook b WHERE b.invitation=i.id) AS guestbook,
     (SELECT COUNT(*) FROM guest_photos p WHERE p.invitation=i.id) AS photos,
@@ -39,7 +40,7 @@ export async function POST(req:Request){
   const days=Array.from({length:7},(_,i)=>kstDay(new Date(Date.now()-(6-i)*86400e3).toISOString()));
   const list=rows.results.map(r=>{let x:{kind?:string;couple?:{since?:string};names?:string;title?:string;date?:string;place?:string;hall?:string;address?:string;hero?:unknown[]}={};try{x=JSON.parse(r.data)}catch{}
     const created=r.created||'';
-    return {id:r.id,maker:r.owner.replace(/^guest:/,'').slice(0,6),kind:x.kind==='baby'||x.kind==='couple'||x.kind==='party'?x.kind:'wedding',names:x.names||'',title:x.title||'',date:x.date||'',place:[x.place,x.hall].filter(Boolean).join(' '),published:!!r.published,steps:{names:!!x.names?.trim(),date:x.kind==='couple'?!!x.couple?.since:!!x.date&&Number.isFinite(Date.parse(x.date)),place:x.kind==='couple'||(x.kind==='party'?!!x.place?.trim():!!x.place?.trim()&&!!x.address?.trim()),hero:Array.isArray(x.hero)&&x.hero.length>0},publishedAt:r.published_at||'',created,updated:r.updated,makerSince:r.maker_since||'',rsvps:r.rsvps,guestbook:r.guestbook,photos:r.photos,bytes:r.bytes}});
+    return {id:r.id,maker:r.owner.replace(/^guest:/,'').slice(0,6),kind:x.kind==='baby'||x.kind==='couple'||x.kind==='party'?x.kind:'wedding',names:x.names||'',title:x.title||'',date:x.date||'',place:[x.place,x.hall].filter(Boolean).join(' '),published:!!r.published,steps:{names:!!x.names?.trim(),date:x.kind==='couple'?!!x.couple?.since:!!x.date&&Number.isFinite(Date.parse(x.date)),place:x.kind==='couple'||(x.kind==='party'?!!x.place?.trim():!!x.place?.trim()&&!!x.address?.trim()),hero:Array.isArray(x.hero)&&x.hero.length>0},publishedAt:r.published_at||'',source:r.source||'',created,updated:r.updated,makerSince:r.maker_since||'',rsvps:r.rsvps,guestbook:r.guestbook,photos:r.photos,bytes:r.bytes}});
   const createdDay=(i:typeof list[number])=>kstDay(i.created);
   // 메인 화면 행동(사람 수): 만들기 누름, 안내창에서 바로 만들기, 안내창 닫고 둘러봄, 샘플 봄, 영상 봄 + 실제로 만들어진 초대장 수
   const people=(day:string,kind:string)=>vrows.results.find(r=>r.day===day&&r.kind===kind)?.people||0;
@@ -58,7 +59,26 @@ export async function POST(req:Request){
   const fun={days:days.map(day=>({day,coupleStart:people(day,'couple_start'),coupleMade:ofKind('couple').filter(i=>createdDay(i)===day).length,couplePublished:ofKind('couple').filter(i=>i.published&&kstDay(i.publishedAt)===day).length,coupleYes:people(day,'couple_yes'),partyStart:people(day,'party_start'),partyMade:ofKind('party').filter(i=>createdDay(i)===day).length,partyPublished:ofKind('party').filter(i=>i.published&&kstDay(i.publishedAt)===day).length,partyGoing:people(day,'party_going')})),
     couple:{made:ofKind('couple').length,published:ofKind('couple').filter(i=>i.published).length,yes:ans('bless')},
     party:{made:ofKind('party').length,published:ofKind('party').filter(i=>i.published).length,going:ans('party',1),notGoing:ans('party',0)}};
-  return reply({today,sales,visits,funnel,fun,
+  // 전환율 한눈에 보기: 기간(오늘·최근 7일) × 종류(전체·청첩장·돌잔치·커플·파티)별로 '사람 수' 단계를 셉니다.
+  // 같은 사람이 여러 개 만들어도 1명으로 셉니다(제작자 번호 기준). 빈 초안이 왜 생겼는지(잘못 누름·바로 나감·디자인만 만짐)도 나눠 셉니다.
+  const owners=rows.results.map(r=>r.owner);
+  type It=typeof list[number]&{owner:string;mistake:boolean};
+  const items:It[]=list.map((i,n)=>({...i,owner:owners[n],mistake:false}));
+  const empty=(i:It)=>!i.published&&!i.steps.names&&!i.steps.date&&!i.place&&!i.steps.hero;
+  // 잘못 누름: 아무것도 안 쓴 초안인데, 같은 사람이 30분 안에 다른 종류를 새로 만든 경우
+  for(const i of items){if(!empty(i)||!i.created)continue;const t=Date.parse(i.created);i.mistake=items.some(o=>o!==i&&o.owner===i.owner&&o.kind!==i.kind&&o.created&&Date.parse(o.created)>=t&&Date.parse(o.created)-t<=30*60e3)}
+  const kinds=['all','wedding','baby','couple','party'] as const;
+  const startKey:Record<string,string>={wedding:'wedding_start',baby:'baby_start',couple:'couple_start',party:'party_start'};
+  const periodDays={today:[today],week:days};
+  const uniq=(xs:It[])=>new Set(xs.map(i=>i.owner)).size;
+  const conv=Object.fromEntries((['today','week'] as const).map(p=>{const ds=periodDays[p];const inP=items.filter(i=>ds.includes(createdDay(i)));
+    const sumPeople=(kind:string)=>vrows.results.filter(r=>r.kind===kind&&ds.includes(r.day)).reduce((a,r)=>a+r.people,0);
+    return [p,Object.fromEntries(kinds.map(k=>{const xs=k==='all'?inP:inP.filter(i=>i.kind===k);const filled=xs.filter(i=>!empty(i));const complete=xs.filter(i=>i.published||(i.steps.names&&i.steps.date&&i.steps.place&&i.steps.hero));const blanks=xs.filter(empty);
+      const made=uniq(xs);const start=k==='all'?Math.max(sumPeople('start'),made):Math.max(sumPeople(startKey[k]),made);
+      return [k,{visit:k==='all'?sumPeople('home'):0,start,made,drafts:xs.length,filled:uniq(filled),complete:uniq(complete),published:uniq(xs.filter(i=>i.published)),
+        sources:(SOURCES as readonly string[]).map(src=>{const mine=xs.filter(i=>(i.source||'')===src);return {src,visit:sumPeople('src_'+src),made:uniq(mine),filled:uniq(mine.filter(i=>!empty(i))),published:uniq(mine.filter(i=>i.published))}}).concat([(()=>{const old=xs.filter(i=>!i.source);return {src:'unknown',visit:0,made:uniq(old),filled:uniq(old.filter(i=>!empty(i))),published:uniq(old.filter(i=>i.published))}})()]).filter(r=>r.visit||r.made),
+        blank:{mistake:blanks.filter(i=>i.mistake).length,left:blanks.filter(i=>!i.mistake&&Date.parse(i.updated)-Date.parse(i.created)<=20e3).length,design:blanks.filter(i=>!i.mistake&&Date.parse(i.updated)-Date.parse(i.created)>20e3).length}}]}))]}));
+  return reply({today,sales,visits,funnel,fun,conv,
     totals:{invitations:list.length,published:list.filter(i=>i.published).length,todayInvitations:list.filter(i=>createdDay(i)===today).length,// 오늘 발행: 처음 발행한 날이 오늘인 초대장(이미 발행된 초대장을 오늘 고친 것은 세지 않음)
     todayPublished:list.filter(i=>i.published&&kstDay(i.publishedAt)===today).length,makers:makers.results.length,todayMakers:makers.results.filter(m=>kstDay(m.created)===today).length,rsvps:list.reduce((s,i)=>s+i.rsvps,0),guestbook:list.reduce((s,i)=>s+i.guestbook,0)},
     storage:{fileBytes:files?.bytes||0,fileLimit:10*1024**3,dbBytes:(rows.meta as {size_after?:number})?.size_after||0,dbLimit:5*1024**3},

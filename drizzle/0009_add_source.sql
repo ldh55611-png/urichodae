@@ -1,0 +1,1 @@
+ALTER TABLE `invitations` ADD `source` text DEFAULT '' NOT NULL;
