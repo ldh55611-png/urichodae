@@ -132,3 +132,6 @@
 .conv-total{font-size:13px;color:var(--muted)}
 .admin-manage{margin:22px 0 0;border:1px solid var(--line);border-radius:12px;background:#fff;padding:14px 16px}.admin-manage summary{cursor:pointer;font-weight:600;font-size:15px}.admin-manage summary small{font-weight:400;font-size:12px;color:var(--muted);margin-left:6px}.admin-manage[open] summary{margin-bottom:12px}
 .welcome-foot{display:flex;justify-content:center;align-items:center;gap:6px;margin-top:4px;color:var(--muted)}.welcome-foot .text-btn{font-size:14px;padding:8px 6px}.welcome-foot .welcome-today{color:var(--muted)}
+
+/* 파티 이모지: 고른 글씨체 크기 보정(font-size-adjust)이 이모지까지 키워 위 작은 글씨(YEAR-END PARTY 등)를 가리던 문제 */
+.invite.custom-font .party-emoji{font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif!important;font-size-adjust:none}
