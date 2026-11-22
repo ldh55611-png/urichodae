@@ -19,13 +19,13 @@ export const isPresetMusic=(id:string)=>presetMusic.some(m=>m.id===id);
 const short=z.string().max(200),long=z.string().max(3000),photo=z.object({id:short,y:z.number().min(0).max(100),zoom:z.number().min(1).max(2)});
 const account=z.object({side:z.enum(['groom','bride']).default('groom'),label:short,bank:short,holder:short,number:short});
 export const schema=z.object({kind:z.enum(['wedding','baby','couple','party']),tier:z.enum(['standard','deluxe','premium']).transform(()=>'premium' as const),// 어두운 디자인(차콜·아르데코·별빛)은 2026-10-30 폐지 → 예전 저장본은 화이트·순백으로 바꿉니다.
- theme:z.enum(['sand','rose','sage','lavender','sky','peach','navy','burgundy','white','charcoal']).transform(t=>t==='charcoal'?'white':t),style:z.enum(['classic','romantic','modern','botanical','editorial','watercolor','ribbon','white','artdeco','celestial']).transform(v=>v==='artdeco'||v==='celestial'?'white':v),title:short,names:short,date:short,place:short,address:short,message:long,initials:short,hero:z.array(photo).max(3),gallery:z.array(photo).max(30),music:short.transform(m=>retiredMusic.includes(m)?presetMusic[0].id:m),video:short,parents:z.array(z.object({label:short,name:short,absent:z.boolean(),phone:z.string().max(20).default('')})).max(4),accounts:z.array(account).max(10),stories:z.array(z.object({date:short,title:short,text:long})).max(20),letter:long,
+ theme:z.enum(['sand','rose','sage','lavender','sky','peach','navy','burgundy','white','charcoal']).transform(t=>t==='charcoal'?'white':t),style:z.enum(['classic','romantic','modern','botanical','editorial','watercolor','ribbon','white','artdeco','celestial']).transform(v=>v==='artdeco'||v==='celestial'?'white':v),title:short,names:short,date:short,place:short,address:short,message:long,initials:short,hero:z.array(photo).max(3),gallery:z.array(photo).max(30),music:short.transform(m=>retiredMusic.includes(m)?presetMusic[0].id:m),video:short,parents:z.array(z.object({label:short,name:short,absent:z.boolean(),phone:z.string().max(40).default('')})).max(4),accounts:z.array(account).max(10),stories:z.array(z.object({date:short,title:short,text:long})).max(20),letter:long,
  allowZoom:z.boolean().default(false),
  font:short.default(''),
  hall:short.default(''),
  map:z.object({mode:z.enum(['interactive','static','none']).default('interactive'),image:short.default('')}).default({}),
  transport:z.array(z.object({title:short,text:long})).max(8).default([]),
- contacts:z.object({groom:z.string().max(20).default(''),bride:z.string().max(20).default('')}).default({}),
+ contacts:z.object({groom:z.string().max(40).default(''),bride:z.string().max(40).default('')}).default({}),
  calendar:z.boolean().default(true),
  opening:z.boolean().default(true),
  galleryLayout:z.enum(['grid','slide']).default('grid'),
